@@ -1,0 +1,6 @@
+{
+  "name": "HiShoot Studio",
+  "description": "A premium Material 3 mockup presentation studio with Rock Screen support to generate high-resolution device frames for your screenshots.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

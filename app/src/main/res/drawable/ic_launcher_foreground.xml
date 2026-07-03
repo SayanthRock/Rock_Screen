@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Phone Bezel shadow -->
+    <path
+        android:fillColor="#15000000"
+        android:pathData="M35,25h38a6,6 0 0 1 6,6v48a6,6 0 0 1 -6,6h-38a6,6 0 0 1 -6,-6v-48a6,6 0 0 1 6,-6z" />
+
+    <!-- Outer Phone Frame (Bezel) -->
+    <path
+        android:fillColor="#101726"
+        android:strokeColor="#00E5FF"
+        android:strokeWidth="2.5"
+        android:pathData="M36,24h36a6,6 0 0 1 6,6v48a6,6 0 0 1 -6,6h-36a6,6 0 0 1 -6,-6v-48a6,6 0 0 1 6,-6z" />
+
+    <!-- Screen Clipping with Colorful Gradient Screenshot Mockup -->
+    <path
+        android:pathData="M38.5,26.5h31a3.5,3 0 0 1 3.5,3.5v43a3.5,3 0 0 1 -3.5,3.5h-31a3.5,3 0 0 1 -3.5,-3.5v-43a3.5,3 0 0 1 3.5,-3.5z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="38.5"
+                android:startY="26.5"
+                android:endX="73"
+                android:endY="76.5">
+                <item android:offset="0.0" android:color="#00B0FF"/>
+                <item android:offset="0.5" android:color="#D500F9"/>
+                <item android:offset="1.0" android:color="#3D5AFE"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Glossy Glass Reflection Overlay -->
+    <path
+        android:fillColor="#22FFFFFF"
+        android:pathData="M38.5,26.5 L73,61v-31a3.5,3 0 0 0 -3.5,-3.5h-31z" />
+
+    <!-- Inner Camera Punch-Hole Sensor -->
+    <path
+        android:fillColor="#0D131F"
+        android:strokeColor="#22FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M54,29a1.5,1.5 0 1,1 0,3a1.5,1.5 0 1,1 0,-3" />
+
+    <!-- Decorative status indicators (Wifi, battery bar icons) on screen -->
+    <path
+        android:fillColor="#88FFFFFF"
+        android:pathData="M42,29.5h3v1h-3z M46,29.5h1.5v1h-1.5z" />
+    <path
+        android:fillColor="#88FFFFFF"
+        android:pathData="M63,29.5h3v1h-3z M67,29.5h2v1h-2z" />
+</vector>
