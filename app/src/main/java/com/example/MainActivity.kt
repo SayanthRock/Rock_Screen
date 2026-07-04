@@ -1304,6 +1304,7 @@ fun HiShootApp() {
                                 selectedSolidColor = selectedSolidColor,
                                 selectedGradientIndex = selectedGradientIndex,
                                 ambientBlurRadius = ambientBlurRadius,
+                                backgroundBlurRadius = backgroundBlurRadius,
                                 customHue = customHue,
                                 customSaturation = customSaturation,
                                 customValue = customValue,
@@ -1334,6 +1335,7 @@ fun HiShootApp() {
                                 },
                                 onGradientSelect = { selectedGradientIndex = it },
                                 onBlurRadiusChange = { ambientBlurRadius = it },
+                                onBackgroundBlurRadiusChange = { backgroundBlurRadius = it },
                                 onHueChange = { customHue = it },
                                 onSaturationChange = { customSaturation = it },
                                 onValueChange = { customValue = it },
@@ -2957,6 +2959,7 @@ fun BackgroundTabContent(
     selectedSolidColor: Color,
     selectedGradientIndex: Int,
     ambientBlurRadius: Float,
+    backgroundBlurRadius: Float,
     customHue: Float,
     customSaturation: Float,
     customValue: Float,
@@ -2968,6 +2971,7 @@ fun BackgroundTabContent(
     onSolidColorSelect: (Color) -> Unit,
     onGradientSelect: (Int) -> Unit,
     onBlurRadiusChange: (Float) -> Unit,
+    onBackgroundBlurRadiusChange: (Float) -> Unit,
     onHueChange: (Float) -> Unit,
     onSaturationChange: (Float) -> Unit,
     onValueChange: (Float) -> Unit,
@@ -3576,13 +3580,30 @@ fun BackgroundTabContent(
         BackgroundType.IMAGE -> {
             ControlCard(title = "Backdrop Image Settings") {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Your custom backdrop image is active and will be used as the scene background. You can change or clear it in the 'Custom Backdrop Image' card at the top of this tab.",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         fontSize = 12.sp,
                         lineHeight = 16.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    LabelSlider(
+                        label = "Image Blur Radius",
+                        value = backgroundBlurRadius,
+                        valueRange = 0f..25f,
+                        displayValue = if (backgroundBlurRadius == 0f) "Disabled" else "${backgroundBlurRadius.roundToInt()} px",
+                        onValueChange = onBackgroundBlurRadiusChange
+                    )
+                    
+                    Text(
+                        text = "Apply real-time Gaussian blur to soften and focus your custom background backdrop.",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp
                     )
                 }
             }
