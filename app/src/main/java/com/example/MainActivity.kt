@@ -260,6 +260,7 @@ data class DeviceFrameStyle(
     val bezelColor: Color,
     val defaultAspectRatio: Float,
     val isTablet: Boolean = false,
+    val isDesktop: Boolean = false,
     val description: String = ""
 )
 
@@ -286,6 +287,17 @@ val DeviceFrameStylePresets = listOf(
         description = "Modern symmetric thin-bezel tablet style in landscape or portrait."
     ),
     DeviceFrameStyle(
+        id = "material_desktop",
+        name = "Studio Display (Desktop)",
+        template = MockupTemplate.MINIMAL_BORDER,
+        bezelThickness = 8f,
+        screenCornerRadius = 12f,
+        bezelColor = Color(0xFF232529),
+        defaultAspectRatio = 16f / 10f,
+        isDesktop = true,
+        description = "Chic widescreen aluminum studio monitor with modern immersive borders."
+    ),
+    DeviceFrameStyle(
         id = "iphone_15_pro",
         name = "iPhone 15 Pro (Phone)",
         template = MockupTemplate.DYNAMIC_ISLAND,
@@ -294,6 +306,17 @@ val DeviceFrameStylePresets = listOf(
         bezelColor = Color(0xFF1F1F1F),
         defaultAspectRatio = 9f / 19.5f,
         description = "Ultra-thin symmetric bezels with the Dynamic Island sensor."
+    ),
+    DeviceFrameStyle(
+        id = "pixel_tablet",
+        name = "Pixel Tablet (Tablet)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 12f,
+        screenCornerRadius = 24f,
+        bezelColor = Color(0xFF1F2024),
+        defaultAspectRatio = 16f / 10f,
+        isTablet = true,
+        description = "Symmetric widescreen tablet frame with clean rounded corner screen aesthetics."
     ),
     DeviceFrameStyle(
         id = "generic_phone",
@@ -1622,6 +1645,7 @@ fun MockupCanvasContainer(
     screenshotOffsetX: Float,
     screenshotOffsetY: Float,
     activeTemplate: MockupTemplate,
+    isDesktop: Boolean = false,
     bezelColor: Color,
     bezelThickness: Float,
     screenCornerRadius: Float,
@@ -1789,6 +1813,7 @@ fun MockupCanvasContainer(
         )
 
         // 2. THE DEVICE FRAME WITH 3D ISOMETRIC GRAPHICS LAYER TILT
+        val desktopOverallAspectRatio = deviceFrameAspectRatio * 0.82f
         Box(
             modifier = Modifier
                 .fillMaxSize(),
@@ -1799,7 +1824,7 @@ fun MockupCanvasContainer(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(deviceFrameScale)
-                        .aspectRatio(deviceFrameAspectRatio)
+                        .aspectRatio(if (isDesktop) desktopOverallAspectRatio else deviceFrameAspectRatio)
                         .graphicsLayer {
                             rotationX = -tiltX
                             rotationY = tiltY
@@ -1815,10 +1840,10 @@ fun MockupCanvasContainer(
                 )
             }
 
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth(deviceFrameScale)
-                    .aspectRatio(deviceFrameAspectRatio) // Dynamic smartphone aspect ratio
+                    .aspectRatio(if (isDesktop) desktopOverallAspectRatio else deviceFrameAspectRatio)
                     .graphicsLayer {
                         rotationX = -tiltX
                         rotationY = tiltY
@@ -1828,16 +1853,22 @@ fun MockupCanvasContainer(
                         if (!shadowEnabled && shadowStrength > 0.01f) {
                             shadowElevation = (16 * shadowStrength).dp.toPx()
                         }
-                    }
-                    .background(bezelColor, RoundedCornerShape(screenCornerRadius.dp))
-                    .border(
-                        bezelThickness.dp / 3,
-                        bezelColor.copy(alpha = 0.85f),
-                        RoundedCornerShape(screenCornerRadius.dp)
-                    )
-                    .padding((bezelThickness / 2).dp),
-                contentAlignment = Alignment.Center
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(bezelColor, RoundedCornerShape(screenCornerRadius.dp))
+                        .border(
+                            bezelThickness.dp / 3,
+                            bezelColor.copy(alpha = 0.85f),
+                            RoundedCornerShape(screenCornerRadius.dp)
+                        )
+                        .padding((bezelThickness / 2).dp),
+                    contentAlignment = Alignment.Center
+                ) {
                 // PHONE SCREEN AREA
                 Box(
                     modifier = Modifier
@@ -2064,6 +2095,32 @@ fun MockupCanvasContainer(
                             }
                         }
                     }
+                }
+
+                if (isDesktop) {
+                    // Stand Stem
+                    Box(
+                        modifier = Modifier
+                            .width(28.dp)
+                            .height(20.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(bezelColor, bezelColor.copy(alpha = 0.7f))
+                                )
+                            )
+                    )
+                    // Stand Base
+                    Box(
+                        modifier = Modifier
+                            .width(110.dp)
+                            .height(6.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(bezelColor.copy(alpha = 0.9f), bezelColor)
+                                ),
+                                RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                            )
+                    )
                 }
             }
         }
@@ -4772,7 +4829,8 @@ suspend fun renderHighResMockup(
     screenshotSepia: Float = 0f,
     screenshotBrightness: Float = 1f,
     screenshotContrast: Float = 1f,
-    screenshotLiquidGlass: Boolean = false
+    screenshotLiquidGlass: Boolean = false,
+    isDesktop: Boolean = false
 ): Bitmap = withContext(Dispatchers.IO) {
     // 1. CHOOSE HIGH RESOLUTION EXPORT SIZE (Standard 1080p width base)
     val width = 1440
@@ -4976,13 +5034,57 @@ suspend fun renderHighResMockup(
         style = Paint.Style.FILL
     }
     val rxOuter = screenCornerRadius * (deviceWidth / 280f)
-    val outerRect = RectF(
-        deviceCenterX - deviceWidth / 2f,
-        deviceCenterY - deviceHeight / 2f,
-        deviceCenterX + deviceWidth / 2f,
-        deviceCenterY + deviceHeight / 2f
-    )
+    val outerRect = if (isDesktop) {
+        val standHeight = deviceHeight * 0.18f
+        RectF(
+            deviceCenterX - deviceWidth / 2f,
+            deviceCenterY - deviceHeight / 2f,
+            deviceCenterX + deviceWidth / 2f,
+            deviceCenterY + deviceHeight / 2f - standHeight
+        )
+    } else {
+        RectF(
+            deviceCenterX - deviceWidth / 2f,
+            deviceCenterY - deviceHeight / 2f,
+            deviceCenterX + deviceWidth / 2f,
+            deviceCenterY + deviceHeight / 2f
+        )
+    }
     canvas.drawRoundRect(outerRect, rxOuter, rxOuter, bezelPaint)
+
+    // Draw Desktop Stand if isDesktop is true
+    if (isDesktop) {
+        val standHeight = deviceHeight * 0.18f
+        val stemWidth = deviceWidth * 0.08f
+        val stemHeight = standHeight * 0.75f
+        
+        // Draw Stem
+        val stemPaint = Paint().apply {
+            isAntiAlias = true
+            color = bezelColor.toArgb()
+            style = Paint.Style.FILL
+        }
+        val stemLeft = deviceCenterX - stemWidth / 2f
+        val stemTop = outerRect.bottom
+        val stemRight = deviceCenterX + stemWidth / 2f
+        val stemBottom = stemTop + stemHeight
+        canvas.drawRect(stemLeft, stemTop, stemRight, stemBottom, stemPaint)
+
+        // Draw Base
+        val basePaint = Paint().apply {
+            isAntiAlias = true
+            color = bezelColor.copy(alpha = 0.9f).toArgb()
+            style = Paint.Style.FILL
+        }
+        val baseWidth = deviceWidth * 0.35f
+        val baseHeight = standHeight * 0.25f
+        val baseLeft = deviceCenterX - baseWidth / 2f
+        val baseTop = stemBottom
+        val baseRight = deviceCenterX + baseWidth / 2f
+        val baseBottom = baseTop + baseHeight
+        val rxBase = rxOuter * 0.3f
+        canvas.drawRoundRect(RectF(baseLeft, baseTop, baseRight, baseBottom), rxBase, rxBase, basePaint)
+    }
 
     // Draw Screen area inside Bezel
     val bThicknessPx = bezelThickness * (deviceWidth / 280f)
