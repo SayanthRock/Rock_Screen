@@ -129,14 +129,20 @@ jobs:
         id: apk
         shell: bash
         run: |
-          APK_PATH="$(find app/build/outputs/apk/release app/build/outputs/apk/debug -name '*.apk' 2>/dev/null | head -n 1)"
+          APK_PATH=""
+          if [[ -d app/build/outputs/apk ]]; then
+            APK_PATH="$(find app/build/outputs/apk -type f -name '*.apk' | sort | head -n 1)"
+          fi
+
           if [[ -z "$APK_PATH" ]]; then
-            echo "No APK found."
+            echo "No APK found under app/build/outputs/apk. Current APK output tree:"
+            find app/build/outputs -maxdepth 5 -type f 2>/dev/null || true
             exit 1
           fi
 
           OUTPUT_NAME="Rock_Screen-${{ steps.release_vars.outputs.safe_tag }}.apk"
           cp "$APK_PATH" "$OUTPUT_NAME"
+          echo "Using APK: $APK_PATH"
           echo "path=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact
