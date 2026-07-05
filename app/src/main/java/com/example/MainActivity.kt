@@ -361,10 +361,13 @@ fun HiShootApp() {
     var screenshotOffsetY by remember { mutableStateOf(0f) }
     var deviceFrameScale by remember { mutableStateOf(0.72f) } // 0.3f to 0.95f
 
+    val selectedStyle = remember(selectedDeviceFrameStyleId) {
+        DeviceFrameStylePresets.find { it.id == selectedDeviceFrameStyleId } ?: DeviceFrameStylePresets[0]
+    }
+
     val deviceFrameAspectRatio = if (autoMatchDeviceFrameRatio && selectedImageUri != null) {
         detectedScreenshotAspectRatio
     } else {
-        val selectedStyle = DeviceFrameStylePresets.find { it.id == selectedDeviceFrameStyleId } ?: DeviceFrameStylePresets[0]
         selectedStyle.defaultAspectRatio
     }
 
@@ -855,7 +858,8 @@ fun HiShootApp() {
                                         screenshotSepia = screenshotSepia,
                                         screenshotBrightness = screenshotBrightness,
                                         screenshotContrast = screenshotContrast,
-                                        screenshotLiquidGlass = screenshotLiquidGlass
+                                        screenshotLiquidGlass = screenshotLiquidGlass,
+                                        isDesktop = selectedStyle.isDesktop
                                     ) {
                                         isSaving = false
                                     }
@@ -941,6 +945,7 @@ fun HiShootApp() {
                             screenshotOffsetX = screenshotOffsetX,
                             screenshotOffsetY = screenshotOffsetY,
                             activeTemplate = activeTemplate,
+                            isDesktop = selectedStyle.isDesktop,
                             bezelColor = bezelColor,
                             bezelThickness = bezelThickness,
                             screenCornerRadius = screenCornerRadius,
@@ -1113,7 +1118,8 @@ fun HiShootApp() {
                                     screenshotSepia = screenshotSepia,
                                     screenshotBrightness = screenshotBrightness,
                                     screenshotContrast = screenshotContrast,
-                                    screenshotLiquidGlass = screenshotLiquidGlass
+                                    screenshotLiquidGlass = screenshotLiquidGlass,
+                                    isDesktop = selectedStyle.isDesktop
                                 ) {
                                     isSaving = false
                                 }
@@ -1534,7 +1540,8 @@ fun HiShootApp() {
                                     screenshotSepia = screenshotSepia,
                                     screenshotBrightness = screenshotBrightness,
                                     screenshotContrast = screenshotContrast,
-                                    screenshotLiquidGlass = screenshotLiquidGlass
+                                    screenshotLiquidGlass = screenshotLiquidGlass,
+                                    isDesktop = selectedStyle.isDesktop
                                 ) {
                                     isSaving = false
                                 }
@@ -1599,7 +1606,8 @@ fun HiShootApp() {
                                     screenshotSepia = screenshotSepia,
                                     screenshotBrightness = screenshotBrightness,
                                     screenshotContrast = screenshotContrast,
-                                    screenshotLiquidGlass = screenshotLiquidGlass
+                                    screenshotLiquidGlass = screenshotLiquidGlass,
+                                    isDesktop = selectedStyle.isDesktop
                                 ) {
                                     isSaving = false
                                 }
@@ -2096,36 +2104,35 @@ fun MockupCanvasContainer(
                         }
                     }
                 }
+            }
 
-                }
-
-                if (isDesktop) {
-                    // Stand Stem
-                    Box(
-                        modifier = Modifier
-                            .width(28.dp)
-                            .height(20.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(bezelColor, bezelColor.copy(alpha = 0.7f))
-                                )
+            if (isDesktop) {
+                // Stand Stem
+                Box(
+                    modifier = Modifier
+                        .width(28.dp)
+                        .height(20.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(bezelColor, bezelColor.copy(alpha = 0.7f))
                             )
-                    )
-                    // Stand Base
-                    Box(
-                        modifier = Modifier
-                            .width(110.dp)
-                            .height(6.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(bezelColor.copy(alpha = 0.9f), bezelColor)
-                                ),
-                                RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
-                            )
-                    )
-                }
+                        )
+                )
+                // Stand Base
+                Box(
+                    modifier = Modifier
+                        .width(110.dp)
+                        .height(6.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(bezelColor.copy(alpha = 0.9f), bezelColor)
+                            ),
+                            RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                        )
+                )
             }
         }
+    }
 
         // 4. WATERMARK TEXT DRAWING
         if (showWatermark && watermarkText.isNotBlank()) {
@@ -5467,6 +5474,7 @@ fun saveMockupImage(
     screenshotBrightness: Float = 1f,
     screenshotContrast: Float = 1f,
     screenshotLiquidGlass: Boolean = false,
+    isDesktop: Boolean = false,
     onComplete: () -> Unit
 ) {
     coroutineScope.launch {
@@ -5493,7 +5501,8 @@ fun saveMockupImage(
                 screenshotSepia = screenshotSepia,
                 screenshotBrightness = screenshotBrightness,
                 screenshotContrast = screenshotContrast,
-                screenshotLiquidGlass = screenshotLiquidGlass
+                screenshotLiquidGlass = screenshotLiquidGlass,
+                isDesktop = isDesktop
             )
 
             // Save to Public MediaStore
@@ -5582,6 +5591,7 @@ fun shareMockupImage(
     screenshotBrightness: Float = 1f,
     screenshotContrast: Float = 1f,
     screenshotLiquidGlass: Boolean = false,
+    isDesktop: Boolean = false,
     onComplete: () -> Unit
 ) {
     coroutineScope.launch {
@@ -5608,7 +5618,8 @@ fun shareMockupImage(
                 screenshotSepia = screenshotSepia,
                 screenshotBrightness = screenshotBrightness,
                 screenshotContrast = screenshotContrast,
-                screenshotLiquidGlass = screenshotLiquidGlass
+                screenshotLiquidGlass = screenshotLiquidGlass,
+                isDesktop = isDesktop
             )
 
             // Cache image locally inside app directory and share via FileProvider
