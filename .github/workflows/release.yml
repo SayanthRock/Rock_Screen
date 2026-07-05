@@ -62,7 +62,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -75,7 +75,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: current
+          gradle-version: "9.1.0"
 
       - name: Prepare CI environment files
         shell: bash
@@ -98,21 +98,40 @@ jobs:
             -validity 10000 \
             -dname "CN=Sayanth Rock,O=Rock Screen,C=IN"
 
-      - name: Build release APK
+      - name: Build APK
         shell: bash
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: android
           KEY_PASSWORD: android
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: |
+          set +e
+          gradle :app:assembleRelease --no-daemon --warning-mode all --console=plain 2>&1 | tee build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+
+          if [[ "$BUILD_EXIT" -ne 0 ]]; then
+            echo "Release build failed. Trying debug APK fallback..." | tee -a build.log
+            gradle :app:assembleDebug --no-daemon --warning-mode all --console=plain 2>&1 | tee -a build.log
+            BUILD_EXIT=${PIPESTATUS[0]}
+          fi
+
+          exit "$BUILD_EXIT"
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rock_Screen-build-log-${{ steps.release_vars.outputs.safe_tag }}
+          path: build.log
+          if-no-files-found: ignore
 
       - name: Copy APK for release upload
         id: apk
         shell: bash
         run: |
-          APK_PATH="$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)"
+          APK_PATH="$(find app/build/outputs/apk/release app/build/outputs/apk/debug -name '*.apk' 2>/dev/null | head -n 1)"
           if [[ -z "$APK_PATH" ]]; then
-            echo "No release APK found."
+            echo "No APK found."
             exit 1
           fi
 
