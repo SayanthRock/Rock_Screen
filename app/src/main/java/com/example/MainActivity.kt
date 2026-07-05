@@ -2097,6 +2097,8 @@ fun MockupCanvasContainer(
                     }
                 }
 
+                }
+
                 if (isDesktop) {
                     // Stand Stem
                     Box(
