@@ -1716,13 +1716,19 @@ fun MockupCanvasContainer(
         }
     }
 
-    // Canvas Aspect ratio container
+    // Canvas Aspect ratio container with premium Material 3 elevation shadow styling
     Box(
         modifier = Modifier
             .fillMaxHeight()
             .aspectRatio(aspectRatio.ratio)
-            .clip(RoundedCornerShape(12.dp))
-            .shadow(12.dp)
+            .shadow(
+                elevation = 24.dp,
+                shape = RoundedCornerShape(20.dp),
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.5f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            )
+            .clip(RoundedCornerShape(20.dp))
             .testTag("preview_canvas")
             .clickable { onCanvasClick() }
     ) {
