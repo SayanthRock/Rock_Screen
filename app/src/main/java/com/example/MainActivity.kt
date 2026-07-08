@@ -86,6 +86,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.Redo
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -96,7 +99,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            MyApplicationTheme(darkTheme = true, dynamicColor = false) {
                 HiShootApp()
             }
         }
@@ -113,6 +116,7 @@ enum class TabCategory(val label: String, val icon: ImageVector) {
     TEMPLATE("Template", Icons.Default.Smartphone),
     CANVAS("Canvas", Icons.Default.Layers),
     WATERMARK("Watermark", Icons.Default.Verified),
+    EXPORT("Export", Icons.Default.Save),
     BATCH("Batch Queue", Icons.Default.Collections)
 }
 
@@ -281,7 +285,11 @@ data class DeviceFrameStyle(
     val defaultAspectRatio: Float,
     val isTablet: Boolean = false,
     val isDesktop: Boolean = false,
-    val description: String = ""
+    val description: String = "",
+    val width: Float = 300f,
+    val height: Float = 620f,
+    val buttonStyle: String = "none",
+    val hasFoldLine: Boolean = false
 )
 
 val DeviceFrameStylePresets = listOf(
@@ -290,10 +298,157 @@ val DeviceFrameStylePresets = listOf(
         name = "Pixel 8 Pro (Phone)",
         template = MockupTemplate.PIXEL_MODERN,
         bezelThickness = 10f,
-        screenCornerRadius = 28f,
+        screenCornerRadius = 42f,
         bezelColor = Color(0xFF2E2E2E),
-        defaultAspectRatio = 9f / 19.5f,
-        description = "Sleek flat profile with a centered camera punch-hole."
+        defaultAspectRatio = 300f / 630f,
+        description = "Google flat profile with a centered camera punch-hole and dual-button accents.",
+        width = 300f,
+        height = 630f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "pixel_7",
+        name = "Pixel 7 (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 10f,
+        screenCornerRadius = 40f,
+        bezelColor = Color(0xFF1F2024),
+        defaultAspectRatio = 295f / 620f,
+        description = "Google uniform bezels with rounded corner hardware accents.",
+        width = 295f,
+        height = 620f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "iphone_15_pro",
+        name = "iPhone 15 Pro (Phone)",
+        template = MockupTemplate.DYNAMIC_ISLAND,
+        bezelThickness = 12f,
+        screenCornerRadius = 48f,
+        bezelColor = Color(0xFF1F1F1F),
+        defaultAspectRatio = 300f / 620f,
+        description = "Apple ultra-thin symmetric bezels with the Dynamic Island sensor.",
+        width = 300f,
+        height = 620f,
+        buttonStyle = "iphone"
+    ),
+    DeviceFrameStyle(
+        id = "iphone_14_pro",
+        name = "iPhone 14 Pro (Phone)",
+        template = MockupTemplate.DYNAMIC_ISLAND,
+        bezelThickness = 12f,
+        screenCornerRadius = 48f,
+        bezelColor = Color(0xFF2C2C2C),
+        defaultAspectRatio = 300f / 620f,
+        description = "Apple symmetric bezel-less design with premium high-contrast island cutout.",
+        width = 300f,
+        height = 620f,
+        buttonStyle = "iphone"
+    ),
+    DeviceFrameStyle(
+        id = "iphone_13",
+        name = "iPhone 13 (Phone)",
+        template = MockupTemplate.IPHONE_NOTCH,
+        bezelThickness = 12f,
+        screenCornerRadius = 44f,
+        bezelColor = Color(0xFF0F172A),
+        defaultAspectRatio = 300f / 620f,
+        description = "Apple symmetric rectangular screen with a classic notch cutout.",
+        width = 300f,
+        height = 620f,
+        buttonStyle = "iphone"
+    ),
+    DeviceFrameStyle(
+        id = "iphone_se",
+        name = "iPhone SE (Phone)",
+        template = MockupTemplate.MINIMAL_BORDER,
+        bezelThickness = 18f,
+        screenCornerRadius = 34f,
+        bezelColor = Color(0xFF1E293B),
+        defaultAspectRatio = 285f / 560f,
+        description = "Classic iPhone design with thick status and action borders.",
+        width = 285f,
+        height = 560f,
+        buttonStyle = "iphone"
+    ),
+    DeviceFrameStyle(
+        id = "samsung_s24_ultra",
+        name = "Galaxy S24 Ultra (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 9f,
+        screenCornerRadius = 30f,
+        bezelColor = Color(0xFF0A0A0A),
+        defaultAspectRatio = 305f / 640f,
+        description = "Sharp, squared profile with micro bezel design borders.",
+        width = 305f,
+        height = 640f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "samsung_s23",
+        name = "Galaxy S23 (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 9f,
+        screenCornerRadius = 40f,
+        bezelColor = Color(0xFF111111),
+        defaultAspectRatio = 300f / 625f,
+        description = "Symmetric modern curved bezel frame with smooth corners.",
+        width = 300f,
+        height = 625f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "oneplus_12",
+        name = "OnePlus 12 (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 9f,
+        screenCornerRadius = 42f,
+        bezelColor = Color(0xFF1A1A1A),
+        defaultAspectRatio = 305f / 635f,
+        description = "Chic tall display with elegant curves and dynamic centered punch-hole.",
+        width = 305f,
+        height = 635f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "xiaomi_14",
+        name = "Xiaomi 14 (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 9f,
+        screenCornerRadius = 38f,
+        bezelColor = Color(0xFF1E1E1E),
+        defaultAspectRatio = 298f / 620f,
+        description = "Ultra-compact profile with micro bezel screen borders.",
+        width = 298f,
+        height = 620f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "generic_android",
+        name = "Generic Android (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 10f,
+        screenCornerRadius = 38f,
+        bezelColor = Color(0xFF050505),
+        defaultAspectRatio = 300f / 620f,
+        description = "Standard dynamic Android smartphone mock frame.",
+        width = 300f,
+        height = 620f,
+        buttonStyle = "android"
+    ),
+    DeviceFrameStyle(
+        id = "galaxy_z_fold_open",
+        name = "Galaxy Z Fold Open (Phone)",
+        template = MockupTemplate.PIXEL_MODERN,
+        bezelThickness = 12f,
+        screenCornerRadius = 38f,
+        bezelColor = Color(0xFF0F0F12),
+        defaultAspectRatio = 1.0f,
+        description = "Unique open dual-pane folding display with a subtle center crease line.",
+        width = 620f,
+        height = 620f,
+        buttonStyle = "android",
+        hasFoldLine = true
     ),
     DeviceFrameStyle(
         id = "generic_tablet",
@@ -304,28 +459,10 @@ val DeviceFrameStylePresets = listOf(
         bezelColor = Color(0xFF1C1B1F),
         defaultAspectRatio = 4f / 3f,
         isTablet = true,
-        description = "Modern symmetric thin-bezel tablet style in landscape or portrait."
-    ),
-    DeviceFrameStyle(
-        id = "material_desktop",
-        name = "Studio Display (Desktop)",
-        template = MockupTemplate.MINIMAL_BORDER,
-        bezelThickness = 8f,
-        screenCornerRadius = 12f,
-        bezelColor = Color(0xFF232529),
-        defaultAspectRatio = 16f / 10f,
-        isDesktop = true,
-        description = "Chic widescreen aluminum studio monitor with modern immersive borders."
-    ),
-    DeviceFrameStyle(
-        id = "iphone_15_pro",
-        name = "iPhone 15 Pro (Phone)",
-        template = MockupTemplate.DYNAMIC_ISLAND,
-        bezelThickness = 8f,
-        screenCornerRadius = 32f,
-        bezelColor = Color(0xFF1F1F1F),
-        defaultAspectRatio = 9f / 19.5f,
-        description = "Ultra-thin symmetric bezels with the Dynamic Island sensor."
+        description = "Modern symmetric thin-bezel tablet style in landscape or portrait.",
+        width = 600f,
+        height = 800f,
+        buttonStyle = "none"
     ),
     DeviceFrameStyle(
         id = "pixel_tablet",
@@ -336,28 +473,95 @@ val DeviceFrameStylePresets = listOf(
         bezelColor = Color(0xFF1F2024),
         defaultAspectRatio = 16f / 10f,
         isTablet = true,
-        description = "Symmetric widescreen tablet frame with clean rounded corner screen aesthetics."
+        description = "Symmetric widescreen tablet frame with clean rounded corner screen aesthetics.",
+        width = 800f,
+        height = 500f,
+        buttonStyle = "none"
     ),
     DeviceFrameStyle(
-        id = "generic_phone",
-        name = "Generic Phone (9:16)",
+        id = "material_desktop",
+        name = "Studio Display (Desktop)",
         template = MockupTemplate.MINIMAL_BORDER,
-        bezelThickness = 6f,
-        screenCornerRadius = 32f,
-        bezelColor = Color(0xFF00E5FF),
-        defaultAspectRatio = 9f / 16f,
-        description = "Classic minimal thin border phone aspect ratio (9:16)."
-    ),
-    DeviceFrameStyle(
-        id = "galaxy_s24",
-        name = "Galaxy S24 Ultra (Phone)",
-        template = MockupTemplate.PIXEL_MODERN,
-        bezelThickness = 6f,
-        screenCornerRadius = 8f,
-        bezelColor = Color(0xFF0A0A0A),
-        defaultAspectRatio = 9f / 19.5f,
-        description = "Sharp, squared profile with micro bezel design borders."
+        bezelThickness = 8f,
+        screenCornerRadius = 12f,
+        bezelColor = Color(0xFF232529),
+        defaultAspectRatio = 16f / 10f,
+        isDesktop = true,
+        description = "Chic widescreen aluminum studio monitor with modern immersive borders.",
+        width = 960f,
+        height = 600f,
+        buttonStyle = "none"
     )
+)
+
+// ==========================================
+// STATE HISTORY SNAPSHOT MODEL
+// ==========================================
+
+data class MockupState(
+    val selectedImageUri: Uri? = null,
+    val autoMatchDeviceFrameRatio: Boolean = true,
+    val detectedScreenshotAspectRatio: Float = 9f / 19.5f,
+    val selectedDeviceFrameStyleId: String = "pixel_8_pro",
+    val selectedBackgroundUri: Uri? = null,
+    val screenshotScale: Float = 1.0f,
+    val screenshotOffsetX: Float = 0f,
+    val screenshotOffsetY: Float = 0f,
+    val deviceFrameScale: Float = 0.72f,
+    val backgroundType: BackgroundType = BackgroundType.GRADIENT,
+    val selectedSolidColor: Color = Color(0xFF0F172A), // PresetColors[0] is not directly resolved in a global constant if not loaded, so using Color(0xFF0F172A)
+    val customHue: Float = 200f,
+    val customSaturation: Float = 0.8f,
+    val customValue: Float = 0.3f,
+    val selectedGradientIndex: Int = 0,
+    val ambientBlurRadius: Float = 15f,
+    val backgroundBlurRadius: Float = 0f,
+    val liquidThemeIndex: Int = 0,
+    val liquidScale: Float = 1.2f,
+    val showDisplayGlassBlur: Boolean = false,
+    val displayGlassBlurColor: Color = Color(0xFF00E5FF),
+    val displayGlassBlurOpacity: Float = 0.4f,
+    val liquidNoiseEnabled: Boolean = true,
+    val selectedPatternType: PatternType = PatternType.DOTS,
+    val patternPrimaryColorHue: Float = 240f,
+    val patternSecondaryColorHue: Float = 280f,
+    val patternBgColor: Color = Color(0xFF0F172A),
+    val patternScale: Float = 1.0f,
+    val activeTemplate: MockupTemplate = MockupTemplate.MINIMAL_BORDER,
+    val bezelColor: Color = Color(0xFF00E5FF),
+    val bezelThickness: Float = 5f,
+    val screenCornerRadius: Float = 32f,
+    val showStatusBarIcons: Boolean = true,
+    val showGlossyReflection: Boolean = true,
+    val glossyReflectionOpacity: Float = 0.18f,
+    val activeRatio: CanvasRatio = CanvasRatio.PORTRAIT_9_16,
+    val tiltX: Float = 15f,
+    val tiltY: Float = -15f,
+    val tiltZ: Float = 5f,
+    val perspectiveDepth: Float = 8f,
+    val shadowStrength: Float = 0.4f,
+    val shadowEnabled: Boolean = true,
+    val shadowBlurRadius: Float = 25f,
+    val shadowOffsetX: Float = 10f,
+    val shadowOffsetY: Float = 15f,
+    val shadowColor: Color = Color.Black,
+    val showWatermark: Boolean = true,
+    val watermarkText: String = "Sayanth Rock",
+    val watermarkPosition: WatermarkPosition = WatermarkPosition.BOTTOM_CENTER,
+    val watermarkColor: Color = Color(0xBB00E5FF),
+    val watermarkSize: Float = 14f,
+    val watermarkOpacity: Float = 0.7f,
+    val screenshotGrayscale: Float = 0f,
+    val screenshotSepia: Float = 0f,
+    val screenshotBrightness: Float = 1f,
+    val screenshotContrast: Float = 1f,
+    val screenshotLiquidGlass: Boolean = false,
+    val exportFormat: String = "PNG",
+    val exportQuality: Float = 90f,
+    val deviceFrameWidth: Float = 300f,
+    val deviceFrameHeight: Float = 630f,
+    val buttonStyle: String = "android",
+    val hasFoldLine: Boolean = false
 )
 
 // ==========================================
@@ -375,11 +579,16 @@ fun HiShootApp() {
     var autoMatchDeviceFrameRatio by remember { mutableStateOf(true) }
     var detectedScreenshotAspectRatio by remember { mutableStateOf(9f / 19.5f) }
     var selectedDeviceFrameStyleId by remember { mutableStateOf("pixel_8_pro") }
+    var isDeviceDropdownOpen by remember { mutableStateOf(false) }
     var selectedBackgroundUri by remember { mutableStateOf<Uri?>(null) }
     var screenshotScale by remember { mutableStateOf(1.0f) }
     var screenshotOffsetX by remember { mutableStateOf(0f) }
     var screenshotOffsetY by remember { mutableStateOf(0f) }
     var deviceFrameScale by remember { mutableStateOf(0.72f) } // 0.3f to 0.95f
+    var deviceFrameWidth by remember { mutableStateOf(300f) }
+    var deviceFrameHeight by remember { mutableStateOf(630f) }
+    var buttonStyle by remember { mutableStateOf("android") } // "iphone", "android", "none"
+    var hasFoldLine by remember { mutableStateOf(false) }
 
     val selectedStyle = remember(selectedDeviceFrameStyleId) {
         DeviceFrameStylePresets.find { it.id == selectedDeviceFrameStyleId } ?: DeviceFrameStylePresets[0]
@@ -388,7 +597,7 @@ fun HiShootApp() {
     val deviceFrameAspectRatio = if (autoMatchDeviceFrameRatio && selectedImageUri != null) {
         detectedScreenshotAspectRatio
     } else {
-        selectedStyle.defaultAspectRatio
+        deviceFrameWidth / deviceFrameHeight
     }
 
     var backgroundType by remember { mutableStateOf(BackgroundType.GRADIENT) }
@@ -471,6 +680,227 @@ fun HiShootApp() {
     var screenshotBrightness by remember { mutableStateOf(1f) } // 0.5f to 2f
     var screenshotContrast by remember { mutableStateOf(1f) } // 0.5f to 2f
     var screenshotLiquidGlass by remember { mutableStateOf(false) }
+
+    var exportFormat by remember { mutableStateOf("PNG") } // "PNG", "JPEG", "WebP"
+    var exportQuality by remember { mutableStateOf(90f) } // 10f to 100f
+
+    // ==========================================
+    // STATE HISTORY ENGINE (UNDO/REDO)
+    // ==========================================
+    val undoStack = remember { mutableStateListOf<MockupState>() }
+    val redoStack = remember { mutableStateListOf<MockupState>() }
+    var isUndoingRedoing by remember { mutableStateOf(false) }
+    var lastSavedState by remember { mutableStateOf<MockupState?>(null) }
+
+    fun captureCurrentState() = MockupState(
+        selectedImageUri = selectedImageUri,
+        autoMatchDeviceFrameRatio = autoMatchDeviceFrameRatio,
+        detectedScreenshotAspectRatio = detectedScreenshotAspectRatio,
+        selectedDeviceFrameStyleId = selectedDeviceFrameStyleId,
+        selectedBackgroundUri = selectedBackgroundUri,
+        screenshotScale = screenshotScale,
+        screenshotOffsetX = screenshotOffsetX,
+        screenshotOffsetY = screenshotOffsetY,
+        deviceFrameScale = deviceFrameScale,
+        backgroundType = backgroundType,
+        selectedSolidColor = selectedSolidColor,
+        customHue = customHue,
+        customSaturation = customSaturation,
+        customValue = customValue,
+        selectedGradientIndex = selectedGradientIndex,
+        ambientBlurRadius = ambientBlurRadius,
+        backgroundBlurRadius = backgroundBlurRadius,
+        liquidThemeIndex = liquidThemeIndex,
+        liquidScale = liquidScale,
+        showDisplayGlassBlur = showDisplayGlassBlur,
+        displayGlassBlurColor = displayGlassBlurColor,
+        displayGlassBlurOpacity = displayGlassBlurOpacity,
+        liquidNoiseEnabled = liquidNoiseEnabled,
+        selectedPatternType = selectedPatternType,
+        patternPrimaryColorHue = patternPrimaryColorHue,
+        patternSecondaryColorHue = patternSecondaryColorHue,
+        patternBgColor = patternBgColor,
+        patternScale = patternScale,
+        activeTemplate = activeTemplate,
+        bezelColor = bezelColor,
+        bezelThickness = bezelThickness,
+        screenCornerRadius = screenCornerRadius,
+        showStatusBarIcons = showStatusBarIcons,
+        showGlossyReflection = showGlossyReflection,
+        glossyReflectionOpacity = glossyReflectionOpacity,
+        activeRatio = activeRatio,
+        tiltX = tiltX,
+        tiltY = tiltY,
+        tiltZ = tiltZ,
+        perspectiveDepth = perspectiveDepth,
+        shadowStrength = shadowStrength,
+        shadowEnabled = shadowEnabled,
+        shadowBlurRadius = shadowBlurRadius,
+        shadowOffsetX = shadowOffsetX,
+        shadowOffsetY = shadowOffsetY,
+        shadowColor = shadowColor,
+        showWatermark = showWatermark,
+        watermarkText = watermarkText,
+        watermarkPosition = watermarkPosition,
+        watermarkColor = watermarkColor,
+        watermarkSize = watermarkSize,
+        watermarkOpacity = watermarkOpacity,
+        screenshotGrayscale = screenshotGrayscale,
+        screenshotSepia = screenshotSepia,
+        screenshotBrightness = screenshotBrightness,
+        screenshotContrast = screenshotContrast,
+        screenshotLiquidGlass = screenshotLiquidGlass,
+        exportFormat = exportFormat,
+        exportQuality = exportQuality,
+        deviceFrameWidth = deviceFrameWidth,
+        deviceFrameHeight = deviceFrameHeight,
+        buttonStyle = buttonStyle,
+        hasFoldLine = hasFoldLine
+    )
+
+    fun restoreState(state: MockupState) {
+        selectedImageUri = state.selectedImageUri
+        autoMatchDeviceFrameRatio = state.autoMatchDeviceFrameRatio
+        detectedScreenshotAspectRatio = state.detectedScreenshotAspectRatio
+        selectedDeviceFrameStyleId = state.selectedDeviceFrameStyleId
+        selectedBackgroundUri = state.selectedBackgroundUri
+        screenshotScale = state.screenshotScale
+        screenshotOffsetX = state.screenshotOffsetX
+        screenshotOffsetY = state.screenshotOffsetY
+        deviceFrameScale = state.deviceFrameScale
+        backgroundType = state.backgroundType
+        selectedSolidColor = state.selectedSolidColor
+        customHue = state.customHue
+        customSaturation = state.customSaturation
+        customValue = state.customValue
+        selectedGradientIndex = state.selectedGradientIndex
+        ambientBlurRadius = state.ambientBlurRadius
+        backgroundBlurRadius = state.backgroundBlurRadius
+        liquidThemeIndex = state.liquidThemeIndex
+        liquidScale = state.liquidScale
+        showDisplayGlassBlur = state.showDisplayGlassBlur
+        displayGlassBlurColor = state.displayGlassBlurColor
+        displayGlassBlurOpacity = state.displayGlassBlurOpacity
+        liquidNoiseEnabled = state.liquidNoiseEnabled
+        selectedPatternType = state.selectedPatternType
+        patternPrimaryColorHue = state.patternPrimaryColorHue
+        patternSecondaryColorHue = state.patternSecondaryColorHue
+        patternBgColor = state.patternBgColor
+        patternScale = state.patternScale
+        activeTemplate = state.activeTemplate
+        bezelColor = state.bezelColor
+        bezelThickness = state.bezelThickness
+        screenCornerRadius = state.screenCornerRadius
+        showStatusBarIcons = state.showStatusBarIcons
+        showGlossyReflection = state.showGlossyReflection
+        glossyReflectionOpacity = state.glossyReflectionOpacity
+        activeRatio = state.activeRatio
+        tiltX = state.tiltX
+        tiltY = state.tiltY
+        tiltZ = state.tiltZ
+        perspectiveDepth = state.perspectiveDepth
+        shadowStrength = state.shadowStrength
+        shadowEnabled = state.shadowEnabled
+        shadowBlurRadius = state.shadowBlurRadius
+        shadowOffsetX = state.shadowOffsetX
+        shadowOffsetY = state.shadowOffsetY
+        shadowColor = state.shadowColor
+        showWatermark = state.showWatermark
+        watermarkText = state.watermarkText
+        watermarkPosition = state.watermarkPosition
+        watermarkColor = state.watermarkColor
+        watermarkSize = state.watermarkSize
+        watermarkOpacity = state.watermarkOpacity
+        screenshotGrayscale = state.screenshotGrayscale
+        screenshotSepia = state.screenshotSepia
+        screenshotBrightness = state.screenshotBrightness
+        screenshotContrast = state.screenshotContrast
+        screenshotLiquidGlass = state.screenshotLiquidGlass
+        exportFormat = state.exportFormat
+        exportQuality = state.exportQuality
+        deviceFrameWidth = state.deviceFrameWidth
+        deviceFrameHeight = state.deviceFrameHeight
+        buttonStyle = state.buttonStyle
+        hasFoldLine = state.hasFoldLine
+    }
+
+    val performUndo = {
+        if (undoStack.isNotEmpty()) {
+            coroutineScope.launch {
+                isUndoingRedoing = true
+                val currentState = captureCurrentState()
+                val previousState = undoStack.removeAt(undoStack.lastIndex)
+                
+                // Push current state to redo stack
+                redoStack.add(currentState)
+                
+                // Restore previous state
+                restoreState(previousState)
+                lastSavedState = previousState
+                
+                delay(150) // Allow states to settle and LaunchedEffects to run/ignore
+                isUndoingRedoing = false
+            }
+        }
+    }
+
+    val performRedo = {
+        if (redoStack.isNotEmpty()) {
+            coroutineScope.launch {
+                isUndoingRedoing = true
+                val currentState = captureCurrentState()
+                val nextState = redoStack.removeAt(redoStack.lastIndex)
+                
+                // Push current state to undo stack
+                undoStack.add(currentState)
+                
+                // Restore next state
+                restoreState(nextState)
+                lastSavedState = nextState
+                
+                delay(150) // Allow states to settle and LaunchedEffects to run/ignore
+                isUndoingRedoing = false
+            }
+        }
+    }
+
+    // Capture changes made in the sidebar with a debounce
+    LaunchedEffect(
+        selectedImageUri, autoMatchDeviceFrameRatio, detectedScreenshotAspectRatio, selectedDeviceFrameStyleId,
+        selectedBackgroundUri, screenshotScale, screenshotOffsetX, screenshotOffsetY, deviceFrameScale,
+        backgroundType, selectedSolidColor, customHue, customSaturation, customValue,
+        selectedGradientIndex, ambientBlurRadius, backgroundBlurRadius, liquidThemeIndex, liquidScale,
+        showDisplayGlassBlur, displayGlassBlurColor, displayGlassBlurOpacity, liquidNoiseEnabled,
+        selectedPatternType, patternPrimaryColorHue, patternSecondaryColorHue, patternBgColor, patternScale,
+        activeTemplate, bezelColor, bezelThickness, screenCornerRadius, showStatusBarIcons,
+        showGlossyReflection, glossyReflectionOpacity, activeRatio, tiltX, tiltY, tiltZ,
+        perspectiveDepth, shadowStrength, shadowEnabled, shadowBlurRadius, shadowOffsetX, shadowOffsetY,
+        shadowColor, showWatermark, watermarkText, watermarkPosition, watermarkColor, watermarkSize,
+        watermarkOpacity, screenshotGrayscale, screenshotSepia, screenshotBrightness, screenshotContrast,
+        screenshotLiquidGlass, exportFormat, exportQuality,
+        deviceFrameWidth, deviceFrameHeight, buttonStyle, hasFoldLine
+    ) {
+        if (isUndoingRedoing) {
+            return@LaunchedEffect
+        }
+
+        // Debounce state saving so dragging a slider doesn't flood the stack
+        delay(600)
+
+        val newState = captureCurrentState()
+        if (lastSavedState == null) {
+            lastSavedState = newState
+        } else if (newState != lastSavedState) {
+            lastSavedState?.let { prev ->
+                if (undoStack.size >= 50) {
+                    undoStack.removeAt(0)
+                }
+                undoStack.add(prev)
+                redoStack.clear()
+            }
+            lastSavedState = newState
+        }
+    }
 
     var activeTab by remember { mutableStateOf(TabCategory.SCREENSHOT) }
     var isSaving by remember { mutableStateOf(false) }
@@ -561,6 +991,10 @@ fun HiShootApp() {
         bezelThickness = 5f
         screenCornerRadius = 32f
         showStatusBarIcons = true
+        deviceFrameWidth = 300f
+        deviceFrameHeight = 630f
+        buttonStyle = "android"
+        hasFoldLine = false
         activeRatio = CanvasRatio.PORTRAIT_9_16
         tiltX = 15f
         tiltY = -15f
@@ -581,7 +1015,12 @@ fun HiShootApp() {
         previewZoom = 1.0f
         previewPanX = 0f
         previewPanY = 0f
+        exportFormat = "PNG"
+        exportQuality = 90f
         batchQueue.clear()
+        undoStack.clear()
+        redoStack.clear()
+        lastSavedState = null
     }
 
     val processBatchQueue = {
@@ -621,15 +1060,40 @@ fun HiShootApp() {
                             backgroundUri = selectedBackgroundUri,
                             backgroundBlurRadius = backgroundBlurRadius,
                             showGlossyReflection = showGlossyReflection,
-                            glossyReflectionOpacity = glossyReflectionOpacity
+                            glossyReflectionOpacity = glossyReflectionOpacity,
+                            buttonStyle = buttonStyle,
+                            hasFoldLine = hasFoldLine
                         )
 
+                        val batchExtension = when (exportFormat.uppercase()) {
+                            "JPEG" -> "jpg"
+                            "WEBP" -> "webp"
+                            else -> "png"
+                        }
+                        val batchMimeType = when (exportFormat.uppercase()) {
+                            "JPEG" -> "image/jpeg"
+                            "WEBP" -> "image/webp"
+                            else -> "image/png"
+                        }
+                        val batchCompressFormat = when (exportFormat.uppercase()) {
+                            "JPEG" -> Bitmap.CompressFormat.JPEG
+                            "WEBP" -> {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                    if (exportQuality < 100f) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP_LOSSLESS
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    Bitmap.CompressFormat.WEBP
+                                }
+                            }
+                            else -> Bitmap.CompressFormat.PNG
+                        }
+
                         // Save each bitmap to Public MediaStore
-                        val filename = "HiShoot_Batch_${System.currentTimeMillis()}_$i.png"
+                        val filename = "HiShoot_Batch_${System.currentTimeMillis()}_$i.$batchExtension"
                         val resolver = context.contentResolver
                         val contentValues = ContentValues().apply {
                             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                            put(MediaStore.Images.Media.MIME_TYPE, batchMimeType)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                 put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/HiShootStudio")
                                 put(MediaStore.Images.Media.IS_PENDING, 1)
@@ -639,7 +1103,7 @@ fun HiShootApp() {
                         val imageUriResult = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
                         if (imageUriResult != null) {
                             resolver.openOutputStream(imageUriResult)?.use { outputStream ->
-                                highResBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                                highResBitmap.compress(batchCompressFormat, exportQuality.toInt(), outputStream)
                             }
 
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -731,6 +1195,157 @@ fun HiShootApp() {
                         }
                     },
                     actions = {
+                        // Quick Device Frame Selection Dropdown Menu
+                        Box {
+                            Row(
+                                modifier = Modifier
+                                    .testTag("quick_device_dropdown_trigger")
+                                    .padding(end = 12.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.05f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                                    .clickable { isDeviceDropdownOpen = true }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = when {
+                                        selectedStyle.isDesktop -> Icons.Default.Laptop
+                                        selectedStyle.isTablet -> Icons.Default.TabletAndroid
+                                        else -> Icons.Default.Smartphone
+                                    },
+                                    contentDescription = null,
+                                    tint = Color(0xFF00E5FF),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = selectedStyle.name.substringBefore(" ("),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Expand quick device styles menu",
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = isDeviceDropdownOpen,
+                                onDismissRequest = { isDeviceDropdownOpen = false },
+                                modifier = Modifier
+                                    .width(220.dp)
+                                    .background(Color(0xFF0F172A))
+                                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                            ) {
+                                DeviceFrameStylePresets.forEach { style ->
+                                    val isSelected = style.id == selectedDeviceFrameStyleId
+                                    DropdownMenuItem(
+                                        modifier = Modifier.testTag("quick_device_item_${style.id}"),
+                                        text = {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = when {
+                                                        style.isDesktop -> Icons.Default.Laptop
+                                                        style.isTablet -> Icons.Default.TabletAndroid
+                                                        else -> Icons.Default.Smartphone
+                                                    },
+                                                    contentDescription = null,
+                                                    tint = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = style.name.substringBefore(" ("),
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                        fontSize = 12.5.sp,
+                                                        color = if (isSelected) Color(0xFF00E5FF) else Color.White
+                                                    )
+                                                    Text(
+                                                        text = when {
+                                                            style.isDesktop -> "Desktop"
+                                                            style.isTablet -> "Tablet"
+                                                            else -> "Phone"
+                                                        },
+                                                        fontSize = 9.sp,
+                                                        color = Color.White.copy(alpha = 0.4f)
+                                                    )
+                                                }
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = "Selected",
+                                                        tint = Color(0xFF00E5FF),
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedDeviceFrameStyleId = style.id
+                                            activeTemplate = style.template
+                                            bezelThickness = style.bezelThickness
+                                            screenCornerRadius = style.screenCornerRadius
+                                            bezelColor = style.bezelColor
+                                            autoMatchDeviceFrameRatio = false
+                                            isDeviceDropdownOpen = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Undo Button
+                        val undoEnabled = undoStack.isNotEmpty()
+                        IconButton(
+                            onClick = { if (undoEnabled) performUndo() },
+                            enabled = undoEnabled,
+                            modifier = Modifier
+                                .testTag("undo_button_topbar")
+                                .padding(end = 4.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(if (undoEnabled) Color.White.copy(alpha = 0.06f) else Color.Transparent)
+                                .border(1.dp, if (undoEnabled) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Undo,
+                                contentDescription = "Undo Last Action",
+                                tint = if (undoEnabled) Color(0xFF818CF8) else Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // Redo Button
+                        val redoEnabled = redoStack.isNotEmpty()
+                        IconButton(
+                            onClick = { if (redoEnabled) performRedo() },
+                            enabled = redoEnabled,
+                            modifier = Modifier
+                                .testTag("redo_button_topbar")
+                                .padding(end = 8.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(if (redoEnabled) Color.White.copy(alpha = 0.06f) else Color.Transparent)
+                                .border(1.dp, if (redoEnabled) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Redo,
+                                contentDescription = "Redo Undone Action",
+                                tint = if (redoEnabled) Color(0xFFC084FC) else Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
                         IconButton(
                             onClick = {
                                 if (!isSaving) {
@@ -783,7 +1398,11 @@ fun HiShootApp() {
                                         screenshotBrightness = screenshotBrightness,
                                         screenshotContrast = screenshotContrast,
                                         screenshotLiquidGlass = screenshotLiquidGlass,
-                                        isDesktop = selectedStyle.isDesktop
+                                        isDesktop = selectedStyle.isDesktop,
+                                        buttonStyle = buttonStyle,
+                                        hasFoldLine = hasFoldLine,
+                                         exportFormat = exportFormat,
+                                         exportQuality = exportQuality
                                     ) {
                                         isSaving = false
                                     }
@@ -848,6 +1467,10 @@ fun HiShootApp() {
                         bezelThickness = style.bezelThickness
                         screenCornerRadius = style.screenCornerRadius
                         bezelColor = style.bezelColor
+                        deviceFrameWidth = style.width
+                        deviceFrameHeight = style.height
+                        buttonStyle = style.buttonStyle
+                        hasFoldLine = style.hasFoldLine
                         autoMatchDeviceFrameRatio = false
                     },
                     onClose = { isSidebarOpen = false },
@@ -872,7 +1495,19 @@ fun HiShootApp() {
                     patternBgColor = patternBgColor,
                     onPatternBgColorChange = { patternBgColor = it },
                     patternScale = patternScale,
-                    onPatternScaleChange = { patternScale = it }
+                    onPatternScaleChange = { patternScale = it },
+                    shadowEnabled = shadowEnabled,
+                    onShadowEnabledChange = { shadowEnabled = it },
+                    shadowStrength = shadowStrength,
+                    onShadowStrengthChange = { shadowStrength = it },
+                    shadowBlurRadius = shadowBlurRadius,
+                    onShadowBlurRadiusChange = { shadowBlurRadius = it },
+                    shadowOffsetX = shadowOffsetX,
+                    onShadowOffsetXChange = { shadowOffsetX = it },
+                    shadowOffsetY = shadowOffsetY,
+                    onShadowOffsetYChange = { shadowOffsetY = it },
+                    shadowColor = shadowColor,
+                    onShadowColorChange = { shadowColor = it }
                 )
             }
 
@@ -881,7 +1516,72 @@ fun HiShootApp() {
                     .weight(1f)
                     .fillMaxHeight()
             ) {
-            // Adaptive Grid / Splitted Area: Top: Preview, Bottom: Sliders & Controls
+                // Horizontal Popular Device Selection Chips Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "QUICK FRAME:",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.4f),
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+
+                    DeviceFrameStylePresets.forEach { style ->
+                        val isSelected = style.id == selectedDeviceFrameStyleId
+                        Row(
+                            modifier = Modifier
+                                .testTag("quick_chip_${style.id}")
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f)
+                                    else Color.White.copy(alpha = 0.04f)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clickable {
+                                    selectedDeviceFrameStyleId = style.id
+                                    activeTemplate = style.template
+                                    bezelThickness = style.bezelThickness
+                                    screenCornerRadius = style.screenCornerRadius
+                                    bezelColor = style.bezelColor
+                                    autoMatchDeviceFrameRatio = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    style.isDesktop -> Icons.Default.Laptop
+                                    style.isTablet -> Icons.Default.TabletAndroid
+                                    else -> Icons.Default.Smartphone
+                                },
+                                contentDescription = null,
+                                tint = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.6f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = style.name.substringBefore(" ("),
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) Color(0xFF00E5FF) else Color.White
+                            )
+                        }
+                    }
+                }
+
+                // Adaptive Grid / Splitted Area: Top: Preview, Bottom: Sliders & Controls
             Box(
                 modifier = Modifier
                     .weight(1.1f)
@@ -971,6 +1671,8 @@ fun HiShootApp() {
                             screenshotBrightness = screenshotBrightness,
                             screenshotContrast = screenshotContrast,
                             screenshotLiquidGlass = screenshotLiquidGlass,
+                            buttonStyle = buttonStyle,
+                            hasFoldLine = hasFoldLine,
                             onCanvasClick = {
                                 photoPickerLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -1116,7 +1818,11 @@ fun HiShootApp() {
                                         screenshotBrightness = screenshotBrightness,
                                         screenshotContrast = screenshotContrast,
                                         screenshotLiquidGlass = screenshotLiquidGlass,
-                                        isDesktop = selectedStyle.isDesktop
+                                        isDesktop = selectedStyle.isDesktop,
+                                        buttonStyle = buttonStyle,
+                                        hasFoldLine = hasFoldLine,
+                                         exportFormat = exportFormat,
+                                         exportQuality = exportQuality
                                     ) {
                                         isSaving = false
                                     }
@@ -1399,6 +2105,10 @@ fun HiShootApp() {
                                         bezelThickness = style.bezelThickness
                                         screenCornerRadius = style.screenCornerRadius
                                         bezelColor = style.bezelColor
+                                        deviceFrameWidth = style.width
+                                        deviceFrameHeight = style.height
+                                        buttonStyle = style.buttonStyle
+                                        hasFoldLine = style.hasFoldLine
                                         autoMatchDeviceFrameRatio = false
                                     }
                                 },
@@ -1409,6 +2119,8 @@ fun HiShootApp() {
                                 showStatusBarIcons = showStatusBarIcons,
                                 showGlossyReflection = showGlossyReflection,
                                 glossyReflectionOpacity = glossyReflectionOpacity,
+                                deviceFrameScale = deviceFrameScale,
+                                onDeviceFrameScaleChange = { deviceFrameScale = it },
                                 onTemplateChange = { activeTemplate = it },
                                 onBezelColorChange = { bezelColor = it },
                                 onThicknessChange = { bezelThickness = it },
@@ -1418,7 +2130,15 @@ fun HiShootApp() {
                                 onGlossyReflectionOpacityChange = { glossyReflectionOpacity = it },
                                 onOpenSidebar = {
                                     isSidebarOpen = true
-                                }
+                                },
+                                deviceFrameWidth = deviceFrameWidth,
+                                deviceFrameHeight = deviceFrameHeight,
+                                buttonStyle = buttonStyle,
+                                hasFoldLine = hasFoldLine,
+                                onDeviceFrameWidthChange = { deviceFrameWidth = it },
+                                onDeviceFrameHeightChange = { deviceFrameHeight = it },
+                                onButtonStyleChange = { buttonStyle = it },
+                                onHasFoldLineChange = { hasFoldLine = it }
                             )
                         }
                         TabCategory.CANVAS -> {
@@ -1463,6 +2183,14 @@ fun HiShootApp() {
                                 onColorChange = { watermarkColor = it },
                                 onSizeChange = { watermarkSize = it },
                                 onOpacityChange = { watermarkOpacity = it }
+                            )
+                        }
+                        TabCategory.EXPORT -> {
+                            ExportTabContent(
+                                exportFormat = exportFormat,
+                                exportQuality = exportQuality,
+                                onExportFormatChange = { exportFormat = it },
+                                onExportQualityChange = { exportQuality = it }
                             )
                         }
                         TabCategory.BATCH -> {
@@ -1546,7 +2274,11 @@ fun HiShootApp() {
                                     screenshotBrightness = screenshotBrightness,
                                     screenshotContrast = screenshotContrast,
                                     screenshotLiquidGlass = screenshotLiquidGlass,
-                                    isDesktop = selectedStyle.isDesktop
+                                    isDesktop = selectedStyle.isDesktop,
+                                    buttonStyle = buttonStyle,
+                                    hasFoldLine = hasFoldLine,
+                                    exportFormat = exportFormat,
+                                    exportQuality = exportQuality
                                 ) {
                                     isSaving = false
                                 }
@@ -1612,7 +2344,11 @@ fun HiShootApp() {
                                     screenshotBrightness = screenshotBrightness,
                                     screenshotContrast = screenshotContrast,
                                     screenshotLiquidGlass = screenshotLiquidGlass,
-                                    isDesktop = selectedStyle.isDesktop
+                                    isDesktop = selectedStyle.isDesktop,
+                                    buttonStyle = buttonStyle,
+                                    hasFoldLine = hasFoldLine,
+                                    exportFormat = exportFormat,
+                                    exportQuality = exportQuality
                                 ) {
                                     isSaving = false
                                 }
@@ -1620,8 +2356,8 @@ fun HiShootApp() {
                         },
                         containerColor = Color(0xFF4CAF50), // Vibrant Green download action
                         contentColor = Color.White,
-                        icon = { Icon(Icons.Default.Download, contentDescription = "Download Mockup") },
-                        text = { Text("Download PNG", fontWeight = FontWeight.Bold) },
+                        icon = { Icon(Icons.Default.Download, contentDescription = "Download Mockup as $exportFormat") },
+                        text = { Text("Download $exportFormat", fontWeight = FontWeight.Bold) },
                         modifier = Modifier.testTag("download_button")
                     )
                 }
@@ -1695,6 +2431,8 @@ fun MockupCanvasContainer(
     screenshotBrightness: Float = 1f,
     screenshotContrast: Float = 1f,
     screenshotLiquidGlass: Boolean = false,
+    buttonStyle: String = "android",
+    hasFoldLine: Boolean = false,
     onCanvasClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1898,7 +2636,63 @@ fun MockupCanvasContainer(
                         .padding((bezelThickness / 2).dp),
                     contentAlignment = Alignment.Center
                 ) {
-                // PHONE SCREEN AREA
+                    // Physical hardware buttons overlay (protruding slightly from outer bezel edge)
+                    if (buttonStyle == "iphone") {
+                        // Left: Silent & Volume Buttons
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = (-4).dp, y = 100.dp)
+                                .size(4.dp, 30.dp)
+                                .background(bezelColor.copy(alpha = 0.9f), RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = (-4).dp, y = 145.dp)
+                                .size(4.dp, 50.dp)
+                                .background(bezelColor.copy(alpha = 0.9f), RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = (-4).dp, y = 205.dp)
+                                .size(4.dp, 50.dp)
+                                .background(bezelColor.copy(alpha = 0.9f), RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp))
+                        )
+                        // Right: Power Button
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = 165.dp)
+                                .size(4.dp, 75.dp)
+                                .background(bezelColor.copy(alpha = 0.9f), RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                        )
+                    } else if (buttonStyle == "android") {
+                        // Right: Volume & Power Buttons
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = 120.dp)
+                                .size(4.dp, 60.dp)
+                                .background(bezelColor.copy(alpha = 0.9f), RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = 195.dp)
+                                .size(4.dp, 40.dp)
+                                .background(bezelColor.copy(alpha = 0.9f), RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                        )
+                    }
+
+                    // PHONE SCREEN AREA
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -2023,6 +2817,25 @@ fun MockupCanvasContainer(
                         )
                     }
 
+                    // Screen fold crease (for foldables)
+                    if (hasFoldLine) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp)
+                                .align(Alignment.Center)
+                                .background(Color.Black.copy(alpha = 0.15f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp)
+                                .align(Alignment.Center)
+                                .offset(x = 1.dp)
+                                .background(Color.White.copy(alpha = 0.08f))
+                        )
+                    }
+
                     // Real Screen Glossy Reflection Overlay
                     if (showGlossyReflection) {
                         Box(
@@ -2030,12 +2843,12 @@ fun MockupCanvasContainer(
                                 .fillMaxSize()
                                 .background(
                                     Brush.linearGradient(
-                                        0.0f to Color.White.copy(alpha = glossyReflectionOpacity * 1.2f),
-                                        0.25f to Color.White.copy(alpha = glossyReflectionOpacity * 0.6f),
-                                        0.40f to Color.Transparent,
-                                        0.45f to Color.White.copy(alpha = glossyReflectionOpacity * 0.15f),
-                                        0.48f to Color.White.copy(alpha = glossyReflectionOpacity * 0.8f),
-                                        0.55f to Color.Transparent,
+                                        0.0f to Color.White.copy(alpha = glossyReflectionOpacity * 1.5f),
+                                        0.22f to Color.White.copy(alpha = glossyReflectionOpacity * 0.7f),
+                                        0.35f to Color.Transparent,
+                                        0.40f to Color(0xFFE0F7FA).copy(alpha = glossyReflectionOpacity * 0.25f), // subtle cyan-blue sky glare
+                                        0.45f to Color.White.copy(alpha = glossyReflectionOpacity * 0.9f), // sharp light reflection
+                                        0.52f to Color.Transparent,
                                         1.0f to Color.Transparent
                                     )
                                 )
@@ -2759,6 +3572,73 @@ fun ScreenshotTabContent(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+            ),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "Quick Start",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Quick Start Guide",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                OnboardingStepRow(
+                    stepNumber = "1",
+                    icon = Icons.Default.AddPhotoAlternate,
+                    title = "Upload Screenshot",
+                    description = "Choose or pick a high-res screenshot from your library to place into the frame."
+                )
+
+                OnboardingStepRow(
+                    stepNumber = "2",
+                    icon = Icons.Default.Devices,
+                    title = "Select Frame Style",
+                    description = "Tap the menu button at the top-left to select from a variety of premium Phones, Tablets, or Desktops."
+                )
+
+                OnboardingStepRow(
+                    stepNumber = "3",
+                    icon = Icons.Default.ColorLens,
+                    title = "Customize Aesthetics",
+                    description = "Personalize colors, fluid gradients, 3D rotations, professional drop shadows, watermarks, or filters."
+                )
+
+                OnboardingStepRow(
+                    stepNumber = "4",
+                    icon = Icons.Default.Download,
+                    title = "Export Masterpiece",
+                    description = "Click the download action icon at the top-right to render and save your high-res mockup directly to your Gallery."
+                )
+            }
+        }
     }
 
     if (selectedImageUri != null) {
@@ -3067,7 +3947,19 @@ fun DeviceFrameSidebar(
     patternBgColor: Color = Color.Black,
     onPatternBgColorChange: (Color) -> Unit = {},
     patternScale: Float = 1.0f,
-    onPatternScaleChange: (Float) -> Unit = {}
+    onPatternScaleChange: (Float) -> Unit = {},
+    shadowEnabled: Boolean = true,
+    onShadowEnabledChange: (Boolean) -> Unit = {},
+    shadowStrength: Float = 0.4f,
+    onShadowStrengthChange: (Float) -> Unit = {},
+    shadowBlurRadius: Float = 25f,
+    onShadowBlurRadiusChange: (Float) -> Unit = {},
+    shadowOffsetX: Float = 10f,
+    onShadowOffsetXChange: (Float) -> Unit = {},
+    shadowOffsetY: Float = 15f,
+    onShadowOffsetYChange: (Float) -> Unit = {},
+    shadowColor: Color = Color.Black,
+    onShadowColorChange: (Color) -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Phones", "Tablets", "Desktops")
@@ -3082,7 +3974,7 @@ fun DeviceFrameSidebar(
     }
 
     var activeTab by remember { mutableStateOf("Devices") }
-    val tabs = listOf("Devices", "Background")
+    val tabs = listOf("Devices", "Background", "Shadow")
 
     Surface(
         modifier = modifier
@@ -3115,7 +4007,11 @@ fun DeviceFrameSidebar(
                         letterSpacing = 2.sp
                     )
                     Text(
-                        text = if (activeTab == "Devices") "Device Frames" else "Custom Canvas",
+                        text = when (activeTab) {
+                            "Devices" -> "Device Frames"
+                            "Background" -> "Custom Canvas"
+                            else -> "Realistic Shadow"
+                        },
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -3348,7 +4244,7 @@ fun DeviceFrameSidebar(
                         modifier = Modifier.weight(1f)
                     )
                 }
-            } else {
+            } else if (activeTab == "Background") {
                 // Background Customization Panel!
                 Column(
                     modifier = Modifier
@@ -3777,6 +4673,242 @@ fun DeviceFrameSidebar(
                     )
                     Text(
                         text = "Every background is fully rendered at ultra high resolution upon export.",
+                        fontSize = 9.sp,
+                        color = Color.White.copy(alpha = 0.4f),
+                        lineHeight = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                // Shadow Customization Panel!
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // 1. Enable Toggle Card
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.03f))
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Enable Drop Shadow",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Apply realistic depth shadows",
+                                fontSize = 10.sp,
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+                        }
+                        Switch(
+                            checked = shadowEnabled,
+                            onCheckedChange = onShadowEnabledChange,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFF00E5FF),
+                                checkedTrackColor = Color(0xFF00E5FF).copy(alpha = 0.3f)
+                            )
+                        )
+                    }
+
+                    if (shadowEnabled) {
+                        // 2. Shadow Intensity (Opacity) Slider
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Shadow Intensity", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                Text("${(shadowStrength * 100).roundToInt()}%", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = shadowStrength,
+                                onValueChange = onShadowStrengthChange,
+                                valueRange = 0f..1f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color(0xFF00E5FF),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                )
+                            )
+                        }
+
+                        // 3. Shadow Softness / Blur Slider
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Shadow Softness / Blur", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                Text("${shadowBlurRadius.roundToInt()}dp", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = shadowBlurRadius,
+                                onValueChange = onShadowBlurRadiusChange,
+                                valueRange = 0f..80f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color(0xFF00E5FF),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                )
+                            )
+                        }
+
+                        // 4. Shadow Hue (Color Spectrum Slider)
+                        val hsv = FloatArray(3)
+                        android.graphics.Color.colorToHSV(
+                            android.graphics.Color.argb(
+                                (shadowColor.alpha * 255f).roundToInt(),
+                                (shadowColor.red * 255f).roundToInt(),
+                                (shadowColor.green * 255f).roundToInt(),
+                                (shadowColor.blue * 255f).roundToInt()
+                            ),
+                            hsv
+                        )
+                        val shadowHue = hsv[0]
+
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Shadow Color Hue", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                val isBlack = shadowColor == Color.Black || (shadowColor.red == 0f && shadowColor.green == 0f && shadowColor.blue == 0f)
+                                Text(
+                                    text = if (isBlack) "Monochrome" else "${shadowHue.roundToInt()}°",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF00E5FF),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Slider(
+                                value = shadowHue,
+                                onValueChange = { hue ->
+                                    onShadowColorChange(Color.hsv(hue, 0.9f, 0.9f))
+                                },
+                                valueRange = 0f..360f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = if (shadowColor == Color.Black) Color.White else Color.hsv(shadowHue, 1f, 1f),
+                                    activeTrackColor = if (shadowColor == Color.Black) Color.White.copy(alpha = 0.4f) else Color.hsv(shadowHue, 0.7f, 0.8f),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                )
+                            )
+                        }
+
+                        // 5. Light Position X (Offset)
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Offset X (Horizontal)", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                Text("${shadowOffsetX.roundToInt()}dp", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = shadowOffsetX,
+                                onValueChange = onShadowOffsetXChange,
+                                valueRange = -50f..50f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color(0xFF00E5FF),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                )
+                            )
+                        }
+
+                        // 6. Light Position Y (Offset)
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Offset Y (Vertical)", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                Text("${shadowOffsetY.roundToInt()}dp", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = shadowOffsetY,
+                                onValueChange = onShadowOffsetYChange,
+                                valueRange = -50f..50f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color(0xFF00E5FF),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                )
+                            )
+                        }
+
+                        // 7. Preset Color Chips
+                        Column {
+                            Text(
+                                text = "QUICK SHADOW PRESETS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.5f),
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val shadowPresetColors = listOf(
+                                Pair("Classic Black", Color.Black),
+                                Pair("Slate Grey", Color(0xFF475569)),
+                                Pair("Neon Cyan", Color(0xFF00E5FF)),
+                                Pair("Cosmic Violet", Color(0xFF7000FF)),
+                                Pair("Neon Pink", Color(0xFFF355DA)),
+                                Pair("Amber Glow", Color(0xFFFF9100))
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                shadowPresetColors.forEach { (name, color) ->
+                                    val isSelected = shadowColor == color
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                            .border(
+                                                width = if (isSelected) 2.5.dp else 1.dp,
+                                                color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.15f),
+                                                shape = CircleShape
+                                            )
+                                            .clickable { onShadowColorChange(color) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider(color = Color.White.copy(alpha = 0.08f))
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.3f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Customize realistic drop shadow values to enhance visual layout depth.",
                         fontSize = 9.sp,
                         color = Color.White.copy(alpha = 0.4f),
                         lineHeight = 12.sp,
@@ -4788,6 +5920,8 @@ fun TemplateTabContent(
     showStatusBarIcons: Boolean,
     showGlossyReflection: Boolean,
     glossyReflectionOpacity: Float,
+    deviceFrameScale: Float,
+    onDeviceFrameScaleChange: (Float) -> Unit,
     onTemplateChange: (MockupTemplate) -> Unit,
     onBezelColorChange: (Color) -> Unit,
     onThicknessChange: (Float) -> Unit,
@@ -4795,7 +5929,15 @@ fun TemplateTabContent(
     onShowStatusBarChange: (Boolean) -> Unit,
     onShowGlossyReflectionChange: (Boolean) -> Unit,
     onGlossyReflectionOpacityChange: (Float) -> Unit,
-    onOpenSidebar: () -> Unit
+    onOpenSidebar: () -> Unit,
+    deviceFrameWidth: Float,
+    deviceFrameHeight: Float,
+    buttonStyle: String,
+    hasFoldLine: Boolean,
+    onDeviceFrameWidthChange: (Float) -> Unit,
+    onDeviceFrameHeightChange: (Float) -> Unit,
+    onButtonStyleChange: (String) -> Unit,
+    onHasFoldLineChange: (Boolean) -> Unit
 ) {
     var styleMenuExpanded by remember { mutableStateOf(false) }
     val currentStyle = DeviceFrameStylePresets.find { it.id == selectedDeviceFrameStyleId } ?: DeviceFrameStylePresets[0]
@@ -4955,6 +6097,19 @@ fun TemplateTabContent(
 
     Spacer(modifier = Modifier.height(16.dp))
 
+    ControlCard(title = "Device Frame Size (Scale)", icon = Icons.Default.AspectRatio) {
+        LabelSlider(
+            label = "Device Frame Scale",
+            value = deviceFrameScale,
+            valueRange = 0.3f..0.95f,
+            displayValue = "${(deviceFrameScale * 100).roundToInt()}%",
+            onValueChange = onDeviceFrameScaleChange,
+            modifier = Modifier.testTag("device_frame_scale_slider")
+        )
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
     ControlCard(title = "Device Template Frame") {
         MockupTemplate.values().forEach { template ->
             val active = activeTemplate == template
@@ -5018,6 +6173,79 @@ fun TemplateTabContent(
             displayValue = "${screenCornerRadius.roundToInt()}dp",
             onValueChange = onCornerRadiusChange
         )
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    ControlCard(title = "Custom Device Dimensions", icon = Icons.Default.AspectRatio) {
+        LabelSlider(
+            label = "Device Frame Width",
+            value = deviceFrameWidth,
+            valueRange = 150f..800f,
+            displayValue = "${deviceFrameWidth.roundToInt()}dp",
+            onValueChange = onDeviceFrameWidthChange
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LabelSlider(
+            label = "Device Frame Height",
+            value = deviceFrameHeight,
+            valueRange = 300f..1000f,
+            displayValue = "${deviceFrameHeight.roundToInt()}dp",
+            onValueChange = onDeviceFrameHeightChange
+        )
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    ControlCard(title = "Physical Hardware Features", icon = Icons.Default.Settings) {
+        Text("Side Accent Buttons", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("android" to "Android", "iphone" to "iPhone", "none" to "None").forEach { (styleKey, styleLabel) ->
+                val active = buttonStyle == styleKey
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .border(1.dp, if (active) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(8.dp))
+                        .clickable { onButtonStyleChange(styleKey) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = styleLabel,
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Center Screen Fold Crease", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("Draws a vertical folding crease line in the center (ideal for open foldable tablet profiles).", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            }
+            Switch(
+                checked = hasFoldLine,
+                onCheckedChange = onHasFoldLineChange
+            )
+        }
     }
 
     Spacer(modifier = Modifier.height(16.dp))
@@ -5418,6 +6646,145 @@ fun CanvasTabContent(
 // ==========================================
 
 @Composable
+fun ExportTabContent(
+    exportFormat: String,
+    exportQuality: Float,
+    onExportFormatChange: (String) -> Unit,
+    onExportQualityChange: (Float) -> Unit
+) {
+    ControlCard(title = "Output Image Format", icon = Icons.Default.Save) {
+        Text(
+            text = "Choose the format for your rendered mockup image. PNG is lossless and has the highest details, while JPEG and WebP offer great compression control.",
+            fontSize = 12.sp,
+            color = Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val formats = listOf("PNG", "JPEG", "WebP")
+            formats.forEach { format ->
+                val isSelected = exportFormat == format
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("export_format_${format.lowercase()}")
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f)
+                            else Color.White.copy(alpha = 0.04f)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onExportFormatChange(format) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = format,
+                        fontSize = 13.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF00E5FF) else Color.White
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Small description of current format benefits
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White.copy(alpha = 0.02f))
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = Color(0xFF00E5FF),
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = when (exportFormat) {
+                    "PNG" -> "PNG: Lossless, crispest graphics. Best for high-contrast presentation. (Quality is fixed at 100%)"
+                    "JPEG" -> "JPEG: High compatibility. Adjustable quality. Great for reducing file sizes."
+                    "WebP" -> "WebP: Next-gen image format. Superior compression. Highly recommended."
+                    else -> ""
+                },
+                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.8f)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // Quality slider - enabled only for lossy format (JPEG/WebP) or we can show 100% fixed for PNG
+    val isQualityAdjustable = exportFormat != "PNG"
+
+    ControlCard(title = "Compression Quality", icon = Icons.Default.Tune) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Export Quality",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                color = if (isQualityAdjustable) Color.White else Color.White.copy(alpha = 0.4f)
+            )
+            Text(
+                text = if (isQualityAdjustable) "${exportQuality.toInt()}%" else "100% (Lossless)",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = if (isQualityAdjustable) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.4f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Slider(
+            value = if (isQualityAdjustable) exportQuality else 100f,
+            onValueChange = { if (isQualityAdjustable) onExportQualityChange(it) },
+            valueRange = 10f..100f,
+            steps = 17, // 5% steps (10, 15, 20, ..., 100)
+            enabled = isQualityAdjustable,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("export_quality_slider"),
+            colors = SliderDefaults.colors(
+                activeTrackColor = if (isQualityAdjustable) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.1f),
+                thumbColor = if (isQualityAdjustable) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.2f)
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = if (isQualityAdjustable) {
+                if (exportQuality >= 90f) "Excellent visual quality, minimal compression artifacts."
+                else if (exportQuality >= 70f) "Balanced quality and file size. Perfect for web sharing."
+                else "High compression, small file size. May show slight artifacting."
+            } else {
+                "PNG automatically saves with full details. No compression loss."
+            },
+            fontSize = 11.sp,
+            color = Color.White.copy(alpha = 0.5f)
+        )
+    }
+}
+
+@Composable
 fun WatermarkTabContent(
     showWatermark: Boolean,
     watermarkText: String,
@@ -5658,9 +7025,10 @@ fun LabelSlider(
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     displayValue: String,
-    onValueChange: (Float) -> Unit
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+    Column(modifier = modifier.padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -6005,7 +7373,9 @@ suspend fun renderHighResMockup(
     screenshotBrightness: Float = 1f,
     screenshotContrast: Float = 1f,
     screenshotLiquidGlass: Boolean = false,
-    isDesktop: Boolean = false
+    isDesktop: Boolean = false,
+    buttonStyle: String = "android",
+    hasFoldLine: Boolean = false
 ): Bitmap = withContext(Dispatchers.IO) {
     // 1. CHOOSE HIGH RESOLUTION EXPORT SIZE (Standard 1080p width base)
     val width = 1440
@@ -6356,6 +7726,80 @@ suspend fun renderHighResMockup(
     }
     canvas.drawRoundRect(outerRect, rxOuter, rxOuter, bezelPaint)
 
+    // Draw Physical side buttons
+    if (buttonStyle == "iphone") {
+        val buttonPaint = Paint().apply {
+            isAntiAlias = true
+            color = bezelColor.toArgb()
+            style = Paint.Style.FILL
+        }
+        val buttonThickness = (deviceWidth / 280f) * 4f
+        val rxBtn = (deviceWidth / 280f) * 1.5f
+        
+        val scaleYFactor = outerRect.height() / 620f
+        
+        // Left: silent, vol up, vol down
+        val silentRect = RectF(
+            outerRect.left - buttonThickness,
+            outerRect.top + 100f * scaleYFactor,
+            outerRect.left,
+            outerRect.top + (100f + 30f) * scaleYFactor
+        )
+        canvas.drawRoundRect(silentRect, rxBtn, rxBtn, buttonPaint)
+        
+        val volUpRect = RectF(
+            outerRect.left - buttonThickness,
+            outerRect.top + 145f * scaleYFactor,
+            outerRect.left,
+            outerRect.top + (145f + 50f) * scaleYFactor
+        )
+        canvas.drawRoundRect(volUpRect, rxBtn, rxBtn, buttonPaint)
+        
+        val volDownRect = RectF(
+            outerRect.left - buttonThickness,
+            outerRect.top + 205f * scaleYFactor,
+            outerRect.left,
+            outerRect.top + (205f + 50f) * scaleYFactor
+        )
+        canvas.drawRoundRect(volDownRect, rxBtn, rxBtn, buttonPaint)
+        
+        // Right: power
+        val powerRect = RectF(
+            outerRect.right,
+            outerRect.top + 165f * scaleYFactor,
+            outerRect.right + buttonThickness,
+            outerRect.top + (165f + 75f) * scaleYFactor
+        )
+        canvas.drawRoundRect(powerRect, rxBtn, rxBtn, buttonPaint)
+    } else if (buttonStyle == "android") {
+        val buttonPaint = Paint().apply {
+            isAntiAlias = true
+            color = bezelColor.toArgb()
+            style = Paint.Style.FILL
+        }
+        val buttonThickness = (deviceWidth / 280f) * 4f
+        val rxBtn = (deviceWidth / 280f) * 1.5f
+        
+        val scaleYFactor = outerRect.height() / 620f
+        
+        // Right: Vol, Power
+        val volRect = RectF(
+            outerRect.right,
+            outerRect.top + 120f * scaleYFactor,
+            outerRect.right + buttonThickness,
+            outerRect.top + (120f + 60f) * scaleYFactor
+        )
+        canvas.drawRoundRect(volRect, rxBtn, rxBtn, buttonPaint)
+        
+        val powerRect = RectF(
+            outerRect.right,
+            outerRect.top + 195f * scaleYFactor,
+            outerRect.right + buttonThickness,
+            outerRect.top + (195f + 40f) * scaleYFactor
+        )
+        canvas.drawRoundRect(powerRect, rxBtn, rxBtn, buttonPaint)
+    }
+
     // Draw Desktop Stand if isDesktop is true
     if (isDesktop) {
         val standHeight = deviceHeight * 0.18f
@@ -6435,11 +7879,12 @@ suspend fun renderHighResMockup(
         val scaleY = aspectHeight / scHeight.toFloat()
         val scale = Math.max(scaleX, scaleY) * screenshotScale
 
-        scMatrix.postScale(scale, scale, scWidth / 2f, scHeight / 2f)
+        scMatrix.postTranslate(-scWidth / 2f, -scHeight / 2f)
+        scMatrix.postScale(scale, scale)
         
         // Translate to match
-        val transX = (innerRect.centerX() - scWidth * scale / 2f) + (screenshotOffsetX * (deviceWidth / 280f))
-        val transY = (innerRect.centerY() - scHeight * scale / 2f) + (screenshotOffsetY * (deviceWidth / 280f))
+        val transX = innerRect.centerX() + (screenshotOffsetX * (deviceWidth / 280f))
+        val transY = innerRect.centerY() + (screenshotOffsetY * (deviceWidth / 280f))
         scMatrix.postTranslate(transX, transY)
 
         val paint = Paint().apply { isAntiAlias = true }
@@ -6567,20 +8012,36 @@ suspend fun renderHighResMockup(
         )
     }
 
+    // Screen fold crease (for foldables)
+    if (hasFoldLine) {
+        val linePaintDark = Paint().apply {
+            isAntiAlias = true
+            color = AndroidColor.argb((255 * 0.15f).toInt(), 0, 0, 0)
+            strokeWidth = (deviceWidth / 280f) * 1.5f
+        }
+        val linePaintLight = Paint().apply {
+            isAntiAlias = true
+            color = AndroidColor.argb((255 * 0.08f).toInt(), 255, 255, 255)
+            strokeWidth = (deviceWidth / 280f) * 1.5f
+        }
+        canvas.drawLine(innerRect.centerX(), innerRect.top, innerRect.centerX(), innerRect.bottom, linePaintDark)
+        canvas.drawLine(innerRect.centerX() + 1f, innerRect.top, innerRect.centerX() + 1f, innerRect.bottom, linePaintLight)
+    }
+
     if (showGlossyReflection) {
         val glossPaint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.FILL
             val glossColors = intArrayOf(
-                AndroidColor.argb((255 * glossyReflectionOpacity * 1.2f).toInt().coerceIn(0, 255), 255, 255, 255),
-                AndroidColor.argb((255 * glossyReflectionOpacity * 0.6f).toInt().coerceIn(0, 255), 255, 255, 255),
+                AndroidColor.argb((255 * glossyReflectionOpacity * 1.5f).toInt().coerceIn(0, 255), 255, 255, 255),
+                AndroidColor.argb((255 * glossyReflectionOpacity * 0.7f).toInt().coerceIn(0, 255), 255, 255, 255),
                 AndroidColor.TRANSPARENT,
-                AndroidColor.argb((255 * glossyReflectionOpacity * 0.15f).toInt().coerceIn(0, 255), 255, 255, 255),
-                AndroidColor.argb((255 * glossyReflectionOpacity * 0.8f).toInt().coerceIn(0, 255), 255, 255, 255),
+                AndroidColor.argb((255 * glossyReflectionOpacity * 0.25f).toInt().coerceIn(0, 255), 128, 230, 250), // subtle cyan-blue sky glare
+                AndroidColor.argb((255 * glossyReflectionOpacity * 0.9f).toInt().coerceIn(0, 255), 255, 255, 255),
                 AndroidColor.TRANSPARENT,
                 AndroidColor.TRANSPARENT
             )
-            val positions = floatArrayOf(0.0f, 0.25f, 0.40f, 0.45f, 0.48f, 0.55f, 1.0f)
+            val positions = floatArrayOf(0.0f, 0.22f, 0.35f, 0.40f, 0.45f, 0.52f, 1.0f)
             shader = LinearGradient(
                 innerRect.left, innerRect.top,
                 innerRect.right, innerRect.bottom,
@@ -6775,6 +8236,10 @@ fun saveMockupImage(
     screenshotContrast: Float = 1f,
     screenshotLiquidGlass: Boolean = false,
     isDesktop: Boolean = false,
+    buttonStyle: String = "android",
+    hasFoldLine: Boolean = false,
+    exportFormat: String = "PNG",
+    exportQuality: Float = 90f,
     onComplete: () -> Unit
 ) {
     coroutineScope.launch {
@@ -6802,15 +8267,40 @@ fun saveMockupImage(
                 screenshotBrightness = screenshotBrightness,
                 screenshotContrast = screenshotContrast,
                 screenshotLiquidGlass = screenshotLiquidGlass,
-                isDesktop = isDesktop
+                isDesktop = isDesktop,
+                buttonStyle = buttonStyle,
+                hasFoldLine = hasFoldLine
             )
 
+            val extension = when (exportFormat.uppercase()) {
+                "JPEG" -> "jpg"
+                "WEBP" -> "webp"
+                else -> "png"
+            }
+            val mimeType = when (exportFormat.uppercase()) {
+                "JPEG" -> "image/jpeg"
+                "WEBP" -> "image/webp"
+                else -> "image/png"
+            }
+            val compressFormat = when (exportFormat.uppercase()) {
+                "JPEG" -> Bitmap.CompressFormat.JPEG
+                "WEBP" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        if (exportQuality < 100f) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP_LOSSLESS
+                    } else {
+                        @Suppress("DEPRECATION")
+                        Bitmap.CompressFormat.WEBP
+                    }
+                }
+                else -> Bitmap.CompressFormat.PNG
+            }
+
             // Save to Public MediaStore
-            val filename = "HiShoot_${System.currentTimeMillis()}.png"
+            val filename = "HiShoot_${System.currentTimeMillis()}.$extension"
             val resolver = context.contentResolver
             val contentValues = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(MediaStore.Images.Media.MIME_TYPE, mimeType)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/HiShootStudio")
                     put(MediaStore.Images.Media.IS_PENDING, 1)
@@ -6820,7 +8310,7 @@ fun saveMockupImage(
             val imageUriResult = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
             if (imageUriResult != null) {
                 resolver.openOutputStream(imageUriResult)?.use { outputStream ->
-                    highResBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                    highResBitmap.compress(compressFormat, exportQuality.toInt(), outputStream)
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -6897,6 +8387,10 @@ fun shareMockupImage(
     screenshotContrast: Float = 1f,
     screenshotLiquidGlass: Boolean = false,
     isDesktop: Boolean = false,
+    buttonStyle: String = "android",
+    hasFoldLine: Boolean = false,
+    exportFormat: String = "PNG",
+    exportQuality: Float = 90f,
     onComplete: () -> Unit
 ) {
     coroutineScope.launch {
@@ -6929,17 +8423,37 @@ fun shareMockupImage(
                 screenshotBrightness = screenshotBrightness,
                 screenshotContrast = screenshotContrast,
                 screenshotLiquidGlass = screenshotLiquidGlass,
-                isDesktop = isDesktop
+                isDesktop = isDesktop,
+                buttonStyle = buttonStyle,
+                hasFoldLine = hasFoldLine
             )
+
+            val extension = when (exportFormat.uppercase()) {
+                "JPEG" -> "jpg"
+                "WEBP" -> "webp"
+                else -> "png"
+            }
+            val compressFormat = when (exportFormat.uppercase()) {
+                "JPEG" -> Bitmap.CompressFormat.JPEG
+                "WEBP" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        if (exportQuality < 100f) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP_LOSSLESS
+                    } else {
+                        @Suppress("DEPRECATION")
+                        Bitmap.CompressFormat.WEBP
+                    }
+                }
+                else -> Bitmap.CompressFormat.PNG
+            }
 
             // Cache image locally inside app directory and share via FileProvider
             val cachePath = File(context.cacheDir, "images")
             cachePath.mkdirs()
-            val shareFile = File(cachePath, "hishoot_share.png")
+            val shareFile = File(cachePath, "hishoot_share.$extension")
             
             withContext(Dispatchers.IO) {
                 FileOutputStream(shareFile).use { out ->
-                    highResBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    highResBitmap.compress(compressFormat, exportQuality.toInt(), out)
                     out.flush()
                 }
             }
@@ -7252,3 +8766,60 @@ fun CustomPatternBackground(
         }
     }
 }
+
+@Composable
+private fun OnboardingStepRow(
+    stepNumber: String,
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stepNumber,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 14.sp
+            )
+        }
+    }
+}
+
