@@ -58,6 +58,46 @@ jobs:
         with:
           gradle-version: current
 
+      - name: Resolve release tag
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag || '' }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease || false }}
+        run: |
+          set -euo pipefail
+
+          release_enabled=false
+          release_tag=""
+          prerelease=false
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            release_enabled=true
+            release_tag="$REF_NAME"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            release_enabled=true
+            release_tag="${INPUT_TAG:-v1.0.0}"
+            prerelease="$INPUT_PRERELEASE"
+          fi
+
+          if [ "$release_enabled" = "true" ]; then
+            release_tag="${release_tag// /-}"
+            if [ -z "$release_tag" ]; then
+              echo "Release tag is empty."
+              exit 1
+            fi
+            artifact_label="$release_tag"
+          else
+            artifact_label="$REF_NAME"
+          fi
+
+          echo "RELEASE_ENABLED=$release_enabled" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+          echo "PRERELEASE=$prerelease" >> "$GITHUB_ENV"
+          echo "ARTIFACT_LABEL=$artifact_label" >> "$GITHUB_ENV"
+
       - name: Create env file
         run: |
           echo "GEMINI_API_KEY=${GEMINI_API_KEY:-MY_GEMINI_API_KEY}" > .env
@@ -81,43 +121,44 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Prepare APK file
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            cp app/build/outputs/apk/release/app-release.apk "release/${APK_NAME}-${GITHUB_REF_NAME}.apk"
-          else
+
+          apk_path="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$apk_path" ]; then
             echo "Release APK was not found."
             find app/build/outputs -name "*.apk" -print || true
             exit 1
           fi
 
+          safe_label="${ARTIFACT_LABEL//\//-}"
+          cp "$apk_path" "release/${APK_NAME}-${safe_label}.apk"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APK_NAME }}-${{ github.ref_name }}
+          name: ${{ env.APK_NAME }}-${{ env.ARTIFACT_LABEL }}
           path: release/*.apk
           if-no-files-found: error
 
-      - name: Resolve release tag
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "RELEASE_TAG=${{ inputs.tag }}" >> "$GITHUB_ENV"
-          else
-            echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
-          fi
-
       - name: Rename APK for release tag
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: env.RELEASE_ENABLED == 'true'
+        shell: bash
         run: |
+          set -euo pipefail
+          rm -f "release/${APK_NAME}-${RELEASE_TAG}.apk"
           mv release/*.apk "release/${APK_NAME}-${RELEASE_TAG}.apk"
+          ls -lh release
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: env.RELEASE_ENABLED == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
           name: Rock Screen ${{ env.RELEASE_TAG }}
           files: release/*.apk
-          prerelease: ${{ inputs.prerelease || false }}
+          prerelease: ${{ env.PRERELEASE }}
           generate_release_notes: true
