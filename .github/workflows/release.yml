@@ -148,8 +148,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f "release/${APK_NAME}-${RELEASE_TAG}.apk"
-          mv release/*.apk "release/${APK_NAME}-${RELEASE_TAG}.apk"
+
+          apk_count=$(find release -maxdepth 1 -type f -name "*.apk" | wc -l | tr -d ' ')
+          if [ "$apk_count" -ne 1 ]; then
+            echo "Expected exactly one APK in release/, found $apk_count."
+            find release -maxdepth 1 -type f -name "*.apk" -print
+            exit 1
+          fi
+
+          current_apk=$(find release -maxdepth 1 -type f -name "*.apk" | head -n 1)
+          safe_release_tag="${RELEASE_TAG//\//-}"
+          release_apk="release/${APK_NAME}-${safe_release_tag}.apk"
+
+          if [ "$current_apk" != "$release_apk" ]; then
+            mv -f "$current_apk" "$release_apk"
+          fi
+
+          echo "RELEASE_APK_PATH=$release_apk" >> "$GITHUB_ENV"
           ls -lh release
 
       - name: Create GitHub Release
@@ -159,6 +174,6 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           target_commitish: ${{ github.sha }}
           name: Rock Screen ${{ env.RELEASE_TAG }}
-          files: release/*.apk
+          files: ${{ env.RELEASE_APK_PATH }}
           prerelease: ${{ env.PRERELEASE }}
           generate_release_notes: true
