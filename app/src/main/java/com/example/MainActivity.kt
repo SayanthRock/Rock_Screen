@@ -76,6 +76,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
@@ -618,170 +620,16 @@ fun HiShootApp() {
         }
     }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var isSidebarOpen by remember { mutableStateOf(false) }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = Color(0xFF121212),
-                drawerContentColor = Color.White,
-                modifier = Modifier
-                    .width(310.dp)
-                    .fillMaxHeight(),
-                drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        text = "DEVICE MODELS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF00E5FF),
-                        letterSpacing = 2.sp,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    
-                    Text(
-                        text = "Select Frame Preset",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
-                    
-                    Text(
-                        text = "Choose from Google, Apple, or Samsung hardware configurations to instantly style your display canvas.",
-                        fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.5f),
-                        lineHeight = 15.sp,
-                        modifier = Modifier.padding(bottom = 20.dp)
-                    )
-                    
-                    val grouped = PhonePresets.groupBy { it.brand }
-                    
-                    androidx.compose.foundation.lazy.LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        grouped.forEach { (brand, models) ->
-                            item {
-                                Text(
-                                    text = brand.uppercase(),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    letterSpacing = 1.5.sp,
-                                    modifier = Modifier.padding(bottom = 6.dp)
-                                )
-                                
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    models.forEach { model ->
-                                        val isSelected = activeTemplate == model.template &&
-                                                bezelThickness == model.bezelThickness &&
-                                                screenCornerRadius == model.screenCornerRadius &&
-                                                bezelColor == model.bezelColor
-                                                
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                                    else MaterialTheme.colorScheme.surfaceVariant
-                                                )
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = if (isSelected) Color(0xFF00E5FF) else Color.Transparent,
-                                                    shape = RoundedCornerShape(12.dp)
-                                                )
-                                                .clickable {
-                                                    activeTemplate = model.template
-                                                    bezelThickness = model.bezelThickness
-                                                    screenCornerRadius = model.screenCornerRadius
-                                                    bezelColor = model.bezelColor
-                                                    coroutineScope.launch {
-                                                        drawerState.close()
-                                                    }
-                                                }
-                                                .padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(36.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(
-                                                        if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f)
-                                                        else Color(0xFF2C2C2C)
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = model.icon,
-                                                    contentDescription = null,
-                                                    tint = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.7f),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                            
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = model.name,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) Color(0xFF00E5FF) else Color.White
-                                                )
-                                                Text(
-                                                    text = model.description,
-                                                    fontSize = 9.5.sp,
-                                                    color = Color.White.copy(alpha = 0.5f),
-                                                    lineHeight = 13.sp
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                drawerState.close()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1E1E1E),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Close Menu", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    ) {
-        Scaffold(
+    Scaffold(
             modifier = Modifier.fillMaxSize().navigationBarsPadding(),
             topBar = {
                 TopAppBar(
                     navigationIcon = {
                         IconButton(
                             onClick = {
-                                coroutineScope.launch {
-                                    drawerState.open()
-                                }
+                                isSidebarOpen = !isSidebarOpen
                             }
                         ) {
                             Icon(
@@ -888,12 +736,36 @@ fun HiShootApp() {
                 )
             }
         ) { innerPadding ->
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            AnimatedVisibility(
+                visible = isSidebarOpen,
+                enter = androidx.compose.animation.slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
+                exit = androidx.compose.animation.slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
+            ) {
+                DeviceFrameSidebar(
+                    selectedStyleId = selectedDeviceFrameStyleId,
+                    onStyleSelect = { style ->
+                        selectedDeviceFrameStyleId = style.id
+                        activeTemplate = style.template
+                        bezelThickness = style.bezelThickness
+                        screenCornerRadius = style.screenCornerRadius
+                        bezelColor = style.bezelColor
+                        autoMatchDeviceFrameRatio = false
+                    },
+                    onClose = { isSidebarOpen = false }
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
             // Adaptive Grid / Splitted Area: Top: Preview, Bottom: Sliders & Controls
             Box(
                 modifier = Modifier
@@ -1410,9 +1282,7 @@ fun HiShootApp() {
                                 onShowGlossyReflectionChange = { showGlossyReflection = it },
                                 onGlossyReflectionOpacityChange = { glossyReflectionOpacity = it },
                                 onOpenSidebar = {
-                                    coroutineScope.launch {
-                                        drawerState.open()
-                                    }
+                                    isSidebarOpen = true
                                 }
                             )
                         }
@@ -1621,9 +1491,9 @@ fun HiShootApp() {
                     )
                 }
             }
+            }
         }
     }
-}
 }
 
 // Helper to wrap Icon sizing
@@ -3022,8 +2892,633 @@ fun BatchTabContent(
 }
 
 // ==========================================
+// DEVICE FRAME SIDEBAR COMPONENT
+// ==========================================
+
+@Composable
+fun DeviceFrameSidebar(
+    modifier: Modifier = Modifier,
+    selectedStyleId: String,
+    onStyleSelect: (DeviceFrameStyle) -> Unit,
+    onClose: () -> Unit
+) {
+    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf("All", "Phones", "Tablets", "Desktops")
+    
+    val filteredPresets = remember(selectedCategory) {
+        when (selectedCategory) {
+            "Phones" -> DeviceFrameStylePresets.filter { !it.isTablet && !it.isDesktop }
+            "Tablets" -> DeviceFrameStylePresets.filter { it.isTablet }
+            "Desktops" -> DeviceFrameStylePresets.filter { it.isDesktop }
+            else -> DeviceFrameStylePresets
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .width(320.dp)
+            .fillMaxHeight()
+            .testTag("device_frame_sidebar"),
+        color = Color(0xFF0F0F12), // Deep obsidian background
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+        tonalElevation = 8.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 16.dp, bottom = 16.dp)
+        ) {
+            // Header with Close Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "DEVICE LAB",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF00E5FF),
+                        letterSpacing = 2.sp
+                    )
+                    Text(
+                        text = "Device Frames",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+                
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.08f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close Sidebar",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Category Quick Chips
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { category ->
+                    val isSelected = selectedCategory == category
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                if (isSelected) Color(0xFF00E5FF)
+                                else Color.White.copy(alpha = 0.05f)
+                            )
+                            .clickable { selectedCategory = category }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = category,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.White.copy(alpha = 0.08f))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Search or Preset Count Indicator
+            Text(
+                text = "Available presets (${filteredPresets.size})",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.4f),
+                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp)
+            )
+            
+            // Presets Lazy List
+            androidx.compose.foundation.lazy.LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                filteredPresets.forEach { style ->
+                    item {
+                        val isSelected = style.id == selectedStyleId
+                        
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.12f)
+                                    else Color.White.copy(alpha = 0.02f)
+                                )
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable { onStyleSelect(style) }
+                                .padding(14.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Mini Mockup Device Visual Frame representation
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f)
+                                            else Color.White.copy(alpha = 0.06f)
+                                        )
+                                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = when {
+                                            style.isDesktop -> Icons.Default.Laptop
+                                            style.isTablet -> Icons.Default.TabletAndroid
+                                            else -> Icons.Default.Smartphone
+                                        },
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = style.name,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color(0xFF00E5FF) else Color.White
+                                    )
+                                    Text(
+                                        text = style.description,
+                                        fontSize = 9.5.sp,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        lineHeight = 13.sp
+                                    )
+                                }
+                                
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF00E5FF)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Active",
+                                            tint = Color.Black,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Technical specs badges inside card
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                SpecBadge(text = style.template.name.replace("_", " "))
+                                SpecBadge(text = "Corner: ${style.screenCornerRadius.roundToInt()}dp")
+                                SpecBadge(text = "Bezel: ${style.bezelThickness.roundToInt()}dp")
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Footer Info Indicator
+            Spacer(modifier = Modifier.height(12.dp))
+            Divider(color = Color.White.copy(alpha = 0.08f))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.3f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "Selecting presets wraps your screenshot instantly in high-fidelity hardware.",
+                    fontSize = 9.sp,
+                    color = Color.White.copy(alpha = 0.4f),
+                    lineHeight = 12.sp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SpecBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(Color.White.copy(alpha = 0.04f))
+            .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White.copy(alpha = 0.5f),
+            letterSpacing = 0.2.sp
+        )
+    }
+}
+
+// ==========================================
 // BACKGROUND CONTROLS CONTENT
 // ==========================================
+
+@Composable
+fun VisualGradientSlider(
+    modifier: Modifier = Modifier,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    gradientBrush: Brush,
+    title: String,
+    displayValue: String
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = displayValue,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(gradientBrush)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val ratio = (offset.x / size.width).coerceIn(0f, 1f)
+                        val mapped = valueRange.start + ratio * (valueRange.endInclusive - valueRange.start)
+                        onValueChange(mapped)
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectDragGestures { change, _ ->
+                        val ratio = (change.position.x / size.width).coerceIn(0f, 1f)
+                        val mapped = valueRange.start + ratio * (valueRange.endInclusive - valueRange.start)
+                        onValueChange(mapped)
+                    }
+                }
+        ) {
+            val ratio = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+            val thumbX = maxWidth * ratio
+            Box(
+                modifier = Modifier
+                    .absoluteOffset(x = thumbX - 14.dp, y = 0.dp)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .shadow(elevation = 6.dp, shape = CircleShape)
+                    .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
+fun InteractiveColorPicker(
+    selectedColor: Color,
+    onColorSelect: (Color) -> Unit,
+    hue: Float,
+    saturation: Float,
+    value: Float,
+    onHueChange: (Float) -> Unit,
+    onSaturationChange: (Float) -> Unit,
+    onValueChange: (Float) -> Unit
+) {
+    var hexInputText by remember { mutableStateOf("") }
+    
+    // Sync hex input from selectedColor changes
+    LaunchedEffect(selectedColor) {
+        val hex = String.format("#%06X", (selectedColor.toArgb() and 0xFFFFFF))
+        if (hexInputText.uppercase() != hex) {
+            hexInputText = hex
+        }
+    }
+
+    val obsidianColors = remember {
+        listOf(
+            Color(0xFF0F172A), // Deep Slate
+            Color(0xFF1E293B), // Medium Slate
+            Color(0xFF121212), // Dark Charcoal
+            Color(0xFF0D1E2D), // Deep Cyan Blue
+            Color(0xFF1A0B2E), // Deep Purple
+            Color(0xFF022C22), // Dark Emerald
+            Color(0xFF450A0A)  // Dark Maroon
+        )
+    }
+
+    val vibrantColors = remember {
+        listOf(
+            Color(0xFF4F46E5), // Indigo
+            Color(0xFF06B6D4), // Cyan
+            Color(0xFF10B981), // Emerald
+            Color(0xFFF43F5E), // Rose
+            Color(0xFF8B5CF6), // Violet
+            Color(0xFFF59E0B), // Amber
+            Color(0xFFEC4899)  // Pink
+        )
+    }
+
+    val pastelColors = remember {
+        listOf(
+            Color(0xFFEEF2F6), // Soft Slate
+            Color(0xFFE0E7FF), // Lavender Mist
+            Color(0xFFE0F2FE), // Ice Sky
+            Color(0xFFD1FAE5), // Mint Green
+            Color(0xFFFCE7F3), // Pale Rose
+            Color(0xFFFEF3C7), // Warm Sand
+            Color(0xFFF3E8FF)  // Pale Lilac
+        )
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Live Color Preview & Hex Details
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            // Preview Swatch
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(selectedColor)
+                    .border(2.dp, Color.White, RoundedCornerShape(16.dp))
+                    .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp))
+            )
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Current Color",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Real-time Hex Color Field
+                OutlinedTextField(
+                    value = hexInputText,
+                    onValueChange = { input ->
+                        hexInputText = input
+                        val cleaned = input.trim().removePrefix("#")
+                        if (cleaned.length == 6) {
+                            try {
+                                val parsedInt = cleaned.toLong(16)
+                                val r = ((parsedInt shr 16) and 0xFF).toInt()
+                                val g = ((parsedInt shr 8) and 0xFF).toInt()
+                                val b = (parsedInt and 0xFF).toInt()
+                                val parsedColor = Color(r, g, b, 255)
+                                onColorSelect(parsedColor)
+                            } catch (e: Exception) {
+                                // Ignore invalid input format
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .testTag("custom_hex_input_picker"),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    singleLine = true,
+                    placeholder = { Text("#FFFFFF") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+            }
+        }
+
+        // Hue Slider
+        val hueBrush = remember {
+            Brush.horizontalGradient(
+                colors = listOf(
+                    Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red
+                )
+            )
+        }
+        VisualGradientSlider(
+            value = hue,
+            onValueChange = onHueChange,
+            valueRange = 0f..360f,
+            gradientBrush = hueBrush,
+            title = "Hue Spectrum",
+            displayValue = "${hue.roundToInt()}°"
+        )
+
+        // Saturation Slider
+        val saturationBrush = remember(hue, value) {
+            Brush.horizontalGradient(
+                colors = listOf(
+                    Color.hsv(hue, 0f, value),
+                    Color.hsv(hue, 1f, value)
+                )
+            )
+        }
+        VisualGradientSlider(
+            value = saturation,
+            onValueChange = onSaturationChange,
+            valueRange = 0f..1f,
+            gradientBrush = saturationBrush,
+            title = "Saturation Intensity",
+            displayValue = "${(saturation * 100).roundToInt()}%"
+        )
+
+        // Value (Brightness) Slider
+        val valueBrush = remember(hue, saturation) {
+            Brush.horizontalGradient(
+                colors = listOf(
+                    Color.Black,
+                    Color.hsv(hue, saturation, 1f)
+                )
+            )
+        }
+        VisualGradientSlider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0.05f..1f,
+            gradientBrush = valueBrush,
+            title = "Brightness Value",
+            displayValue = "${(value * 100).roundToInt()}%"
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Curated Palette Color Swatches Categories
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Premium Swatch Palettes",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Category 1: Deep / Obsidian Tones
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Obsidian Dark Tones",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    obsidianColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (selectedColor == color) 2.5.dp else 1.dp,
+                                    color = if (selectedColor == color) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.15f),
+                                    shape = CircleShape
+                                )
+                                .clickable { onColorSelect(color) }
+                        )
+                    }
+                }
+            }
+
+            // Category 2: Cyber / Vibrant Tones
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Cyber Vibrant Tones",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    vibrantColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (selectedColor == color) 2.5.dp else 1.dp,
+                                    color = if (selectedColor == color) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.15f),
+                                    shape = CircleShape
+                                )
+                                .clickable { onColorSelect(color) }
+                        )
+                    }
+                }
+            }
+
+            // Category 3: Pastel Light Tones
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Soft Pastel Tones",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    pastelColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (selectedColor == color) 2.5.dp else 1.dp,
+                                    color = if (selectedColor == color) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.15f),
+                                    shape = CircleShape
+                                )
+                                .clickable { onColorSelect(color) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun BackgroundTabContent(
@@ -3329,162 +3824,104 @@ fun BackgroundTabContent(
     when (backgroundType) {
         BackgroundType.SOLID -> {
             ControlCard(title = "Custom Solid Color") {
-                // Curated Presets
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    PresetColors.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .border(
-                                    if (selectedSolidColor == color) 2.dp else 0.dp,
-                                    Color.White,
-                                    CircleShape
-                                )
-                                .clickable { onSolidColorSelect(color) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Hex Color Code input
-                Text("Custom Hex Color Code", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = hexInputText,
-                    onValueChange = { input ->
-                        hexInputText = input
-                        val cleaned = input.trim().removePrefix("#")
-                        if (cleaned.length == 6) {
-                            try {
-                                val parsedInt = cleaned.toLong(16)
-                                val r = ((parsedInt shr 16) and 0xFF).toInt()
-                                val g = ((parsedInt shr 8) and 0xFF).toInt()
-                                val b = (parsedInt and 0xFF).toInt()
-                                val parsedColor = Color(r, g, b, 255)
-                                onSolidColorSelect(parsedColor)
-                            } catch (e: Exception) {
-                                // Ignore invalid input format
-                            }
-                        }
-                    },
-                    label = { Text("Hex Color (#RRGGBB)") },
-                    placeholder = { Text("#FFFFFF") },
-                    singleLine = true,
-                    leadingIcon = {
-                        val parsedColor = try {
-                            val cleaned = hexInputText.trim().removePrefix("#")
-                            if (cleaned.length == 6) {
-                                val parsedInt = cleaned.toLong(16)
-                                val r = ((parsedInt shr 16) and 0xFF).toInt()
-                                val g = ((parsedInt shr 8) and 0xFF).toInt()
-                                val b = (parsedInt and 0xFF).toInt()
-                                Color(r, g, b, 255)
-                            } else {
-                                selectedSolidColor
-                            }
-                        } catch (e: Exception) {
-                            selectedSolidColor
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(parsedColor)
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("custom_hex_input"),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Real-time custom HSV color picker sliders
-                Text("Fine Tune Color Palette", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LabelSlider(
-                    label = "Hue",
-                    value = customHue,
-                    valueRange = 0f..360f,
-                    displayValue = "${customHue.roundToInt()}°",
-                    onValueChange = onHueChange
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                LabelSlider(
-                    label = "Saturation",
-                    value = customSaturation,
-                    valueRange = 0f..1f,
-                    displayValue = "${(customSaturation * 100).roundToInt()}%",
-                    onValueChange = onSaturationChange
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                LabelSlider(
-                    label = "Value (Brightness)",
+                InteractiveColorPicker(
+                    selectedColor = selectedSolidColor,
+                    onColorSelect = onSolidColorSelect,
+                    hue = customHue,
+                    saturation = customSaturation,
                     value = customValue,
-                    valueRange = 0.05f..1f,
-                    displayValue = "${(customValue * 100).roundToInt()}%",
+                    onHueChange = onHueChange,
+                    onSaturationChange = onSaturationChange,
                     onValueChange = onValueChange
                 )
             }
         }
         BackgroundType.GRADIENT -> {
             ControlCard(title = "Premium Vector Gradients") {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    PremiumGradients.forEachIndexed { index, gradient ->
-                        val active = selectedGradientIndex == index
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Choose a professionally curated gradient theme for your scene mockup background.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 15.sp,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    
+                    // 2-Column Responsive Grid of Gradient Presets
+                    val chunked = PremiumGradients.chunked(2)
+                    chunked.forEach { rowGradients ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(gradient.colors))
-                                .border(
-                                    if (active) 2.5.dp else 0.dp,
-                                    MaterialTheme.colorScheme.primary,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable { onGradientSelect(index) }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(
-                                gradient.name,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                modifier = Modifier.shadow(1.dp)
-                            )
-                            if (active) {
+                            rowGradients.forEach { gradient ->
+                                val index = PremiumGradients.indexOf(gradient)
+                                val active = selectedGradientIndex == index
                                 Box(
                                     modifier = Modifier
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White),
-                                    contentAlignment = Alignment.Center
+                                        .weight(1f)
+                                        .height(72.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.linearGradient(gradient.colors))
+                                        .border(
+                                            width = if (active) 3.dp else 1.dp,
+                                            color = if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
+                                        .shadow(
+                                            elevation = if (active) 8.dp else 2.dp,
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
+                                        .clickable { onGradientSelect(index) }
+                                        .padding(12.dp),
+                                    contentAlignment = Alignment.BottomStart
                                 ) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color.Black,
-                                        modifier = Modifier.size(14.dp)
+                                    // Soft overlay to ensure text is always readable
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
+                                                )
+                                            )
                                     )
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = gradient.name,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.5.sp,
+                                            modifier = Modifier.shadow(1.dp)
+                                        )
+                                        if (active) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.White),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color.Black,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
+                            }
+                            
+                            // If the row has only 1 item (odd count total), add a blank spacer to maintain alignment
+                            if (rowGradients.size < 2) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
