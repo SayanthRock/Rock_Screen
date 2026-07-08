@@ -1,0 +1,171 @@
+name: Android APK Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v1.0.0"
+        required: true
+        default: "v1.0.0"
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  APK_NAME: Rock-Screen
+
+jobs:
+  build-apk:
+    name: Build and Upload APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+          yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+
+      - name: Resolve APK metadata
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag || '' }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease || false }}
+        run: |
+          set -euo pipefail
+
+          release_enabled=false
+          release_tag=""
+          prerelease=false
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            release_enabled=true
+            release_tag="$REF_NAME"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            release_enabled=true
+            release_tag="${INPUT_TAG:-v1.0.0}"
+            prerelease="$INPUT_PRERELEASE"
+          fi
+
+          if [ "$release_enabled" = "true" ]; then
+            release_tag="${release_tag// /-}"
+            if [ -z "$release_tag" ]; then
+              echo "Release tag is empty."
+              exit 1
+            fi
+            apk_label="$release_tag"
+          else
+            apk_label="$REF_NAME"
+          fi
+
+          apk_label_safe="${apk_label//\//-}"
+
+          echo "RELEASE_ENABLED=$release_enabled" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+          echo "PRERELEASE=$prerelease" >> "$GITHUB_ENV"
+          echo "APK_LABEL=$apk_label_safe" >> "$GITHUB_ENV"
+
+      - name: Create env file
+        shell: bash
+        run: |
+          echo "GEMINI_API_KEY=${GEMINI_API_KEY:-MY_GEMINI_API_KEY}" > .env
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Decode release keystore when available
+        shell: bash
+        run: |
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release-keystore.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release-keystore.jks" >> "$GITHUB_ENV"
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Build release APK
+        shell: bash
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Prepare APK upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          rm -f release/*.apk
+
+          apk_path="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$apk_path" ]; then
+            echo "Release APK was not found. Available APK files:"
+            find app/build/outputs -name "*.apk" -print || true
+            exit 1
+          fi
+
+          apk_file="release/${APK_NAME}-${APK_LABEL}.apk"
+          cp "$apk_path" "$apk_file"
+          ls -lh release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}-${{ env.APK_LABEL }}
+          path: release/*.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          name: Rock Screen ${{ env.RELEASE_TAG }}
+          body: |
+            Automated Rock Screen APK release for ${{ env.RELEASE_TAG }}.
+
+            Download the APK asset below.
+          artifacts: release/*.apk
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          replacesArtifacts: true
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
