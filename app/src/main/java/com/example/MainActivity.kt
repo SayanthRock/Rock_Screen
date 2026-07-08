@@ -127,9 +127,19 @@ enum class CanvasRatio(val label: String, val ratio: Float) {
 enum class BackgroundType(val label: String) {
     SOLID("Solid Color"),
     GRADIENT("Linear Gradient"),
+    PATTERN("Custom Pattern"),
     AMBIENT_BLUR("Ambient Blur"),
     LIQUID_FLOW("Liquid Blur"),
     IMAGE("Gallery Image")
+}
+
+enum class PatternType(val label: String) {
+    DOTS("Dot Matrix"),
+    GRID("Sleek Grid"),
+    STRIPES("Diagonal Carbon"),
+    WAVES("Topographic Wave"),
+    HEXAGON("Sci-Fi Honeycomb"),
+    STARS("Stellar Space")
 }
 
 enum class MockupTemplate(val label: String) {
@@ -168,6 +178,14 @@ val PresetColors = listOf(
     Color(0xFF022C22), // Dark Emerald
     Color(0xFF450A0A)  // Dark Maroon
 )
+
+object PatternConfig {
+    var selectedPatternType: PatternType = PatternType.DOTS
+    var patternPrimaryColor: Color = Color(0xFF818CF8)
+    var patternSecondaryColor: Color = Color(0xFFC084FC)
+    var patternBgColor: Color = Color(0xFF0F172A)
+    var patternScale: Float = 1.0f
+}
 
 data class PhoneModelPreset(
     val name: String,
@@ -396,6 +414,29 @@ fun HiShootApp() {
     var displayGlassBlurColor by remember { mutableStateOf(Color(0xFF00E5FF)) }
     var displayGlassBlurOpacity by remember { mutableStateOf(0.4f) }
     var liquidNoiseEnabled by remember { mutableStateOf(true) }
+
+    // Pattern background state variables
+    var selectedPatternType by remember { mutableStateOf(PatternType.DOTS) }
+    var patternPrimaryColorHue by remember { mutableStateOf(240f) } // Blue/Indigo default
+    var patternPrimaryColor by remember { mutableStateOf(Color(0xFF818CF8)) }
+    LaunchedEffect(patternPrimaryColorHue) {
+        patternPrimaryColor = Color.hsv(patternPrimaryColorHue, 0.7f, 0.9f)
+    }
+    var patternSecondaryColorHue by remember { mutableStateOf(280f) } // Purple default
+    var patternSecondaryColor by remember { mutableStateOf(Color(0xFFC084FC)) }
+    LaunchedEffect(patternSecondaryColorHue) {
+        patternSecondaryColor = Color.hsv(patternSecondaryColorHue, 0.7f, 0.9f)
+    }
+    var patternBgColor by remember { mutableStateOf(PresetColors[0]) }
+    var patternScale by remember { mutableStateOf(1.0f) } // 0.4f to 2.5f
+
+    LaunchedEffect(selectedPatternType, patternPrimaryColor, patternSecondaryColor, patternBgColor, patternScale) {
+        PatternConfig.selectedPatternType = selectedPatternType
+        PatternConfig.patternPrimaryColor = patternPrimaryColor
+        PatternConfig.patternSecondaryColor = patternSecondaryColor
+        PatternConfig.patternBgColor = patternBgColor
+        PatternConfig.patternScale = patternScale
+    }
 
     var activeTemplate by remember { mutableStateOf(MockupTemplate.MINIMAL_BORDER) }
     var bezelColor by remember { mutableStateOf(Color(0xFF00E5FF)) }
@@ -630,28 +671,63 @@ fun HiShootApp() {
                         IconButton(
                             onClick = {
                                 isSidebarOpen = !isSidebarOpen
-                            }
+                            },
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.04f))
+                                .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Menu,
+                                imageVector = if (isSidebarOpen) Icons.Default.MenuOpen else Icons.Default.Menu,
                                 contentDescription = "Open Sidebar Menu",
-                                tint = Color(0xFF00E5FF)
+                                tint = Color(0xFF818CF8), // Matching primary Indigo
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     },
                     title = {
-                        Column {
-                            Text(
-                                text = "HiShoot Studio",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "Rock Screen & Mobile Customer Wallpaper",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = "HiShoot Studio",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 18.sp,
+                                        color = Color.White,
+                                        letterSpacing = 0.2.sp
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(Color(0xFF818CF8), Color(0xFFC084FC))
+                                                )
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "PRO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color.Black,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Premium Device Mockup Canvas",
+                                    fontSize = 10.5.sp,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     },
                     actions = {
@@ -713,25 +789,42 @@ fun HiShootApp() {
                                     }
                                 }
                             },
-                            modifier = Modifier.testTag("download_button_topbar")
+                            modifier = Modifier
+                                .testTag("download_button_topbar")
+                                .padding(end = 4.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF34D399).copy(alpha = 0.12f))
+                                .border(1.dp, Color(0xFF34D399).copy(alpha = 0.3f), CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Download,
                                 contentDescription = "Download Mockup as High-Res PNG",
-                                tint = Color(0xFF00E5FF)
+                                tint = Color(0xFF34D399),
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        IconButton(onClick = resetToDefaults) {
+                        IconButton(
+                            onClick = resetToDefaults,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.04f))
+                                .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                        ) {
                             Icon(
-                                Icons.Default.Refresh,
+                                imageVector = Icons.Default.Refresh,
                                 contentDescription = "Reset Layout Parameters",
-                                tint = MaterialTheme.colorScheme.error
+                                tint = Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = Color(0xFF0B0F19),
+                        titleContentColor = Color.White
                     )
                 )
             }
@@ -757,7 +850,29 @@ fun HiShootApp() {
                         bezelColor = style.bezelColor
                         autoMatchDeviceFrameRatio = false
                     },
-                    onClose = { isSidebarOpen = false }
+                    onClose = { isSidebarOpen = false },
+                    backgroundType = backgroundType,
+                    onBackgroundTypeChange = { backgroundType = it },
+                    selectedSolidColor = selectedSolidColor,
+                    onSolidColorChange = { selectedSolidColor = it },
+                    customHue = customHue,
+                    onCustomHueChange = { customHue = it },
+                    customSaturation = customSaturation,
+                    onCustomSaturationChange = { customSaturation = it },
+                    customValue = customValue,
+                    onCustomValueChange = { customValue = it },
+                    selectedGradientIndex = selectedGradientIndex,
+                    onGradientIndexChange = { selectedGradientIndex = it },
+                    selectedPatternType = selectedPatternType,
+                    onPatternTypeChange = { selectedPatternType = it },
+                    patternPrimaryColorHue = patternPrimaryColorHue,
+                    onPatternPrimaryColorHueChange = { patternPrimaryColorHue = it },
+                    patternSecondaryColorHue = patternSecondaryColorHue,
+                    onPatternSecondaryColorHueChange = { patternSecondaryColorHue = it },
+                    patternBgColor = patternBgColor,
+                    onPatternBgColorChange = { patternBgColor = it },
+                    patternScale = patternScale,
+                    onPatternScaleChange = { patternScale = it }
                 )
             }
 
@@ -773,7 +888,9 @@ fun HiShootApp() {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(Color(0xFF0F172A)) // Deep space slate background
+                    .studioGridBackground()
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 // Zoomable & Pannable wrapper
@@ -867,7 +984,7 @@ fun HiShootApp() {
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(12.dp)
+                        .padding(14.dp)
                         .fillMaxWidth(0.95f)
                         .pointerInput(Unit) {}, // prevent clicks on controls from triggering picker
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -875,28 +992,28 @@ fun HiShootApp() {
                 ) {
                     // Glassmorphic Zoom Control Bar
                     Surface(
-                        color = Color.Black.copy(alpha = 0.75f),
-                        shape = RoundedCornerShape(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                        shadowElevation = 6.dp
+                        color = Color(0xCC0B0F19), // Match theme background with opacity
+                        shape = RoundedCornerShape(20.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                        shadowElevation = 8.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ZoomIn,
                                 contentDescription = "Zoom Scale",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color(0xFF818CF8),
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "${(previewZoom * 100).roundToInt()}%",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = Color.White,
-                                modifier = Modifier.width(32.dp)
+                                modifier = Modifier.width(36.dp)
                             )
                             Slider(
                                 value = previewZoom,
@@ -912,9 +1029,9 @@ fun HiShootApp() {
                                     .width(90.dp)
                                     .height(20.dp),
                                 colors = SliderDefaults.colors(
-                                    thumbColor = MaterialTheme.colorScheme.primary,
-                                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                                    thumbColor = Color(0xFF818CF8),
+                                    activeTrackColor = Color(0xFF818CF8),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.15f)
                                 )
                             )
                             if (previewZoom != 1.0f || previewPanX != 0f || previewPanY != 0f) {
@@ -924,7 +1041,7 @@ fun HiShootApp() {
                                         previewPanX = 0f
                                         previewPanY = 0f
                                     },
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(22.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ZoomOutMap,
@@ -937,85 +1054,95 @@ fun HiShootApp() {
                         }
                     }
 
-                    // Export Button
-                    Button(
-                        onClick = {
-                            if (!isSaving) {
-                                isSaving = true
-                                saveMockupImage(
-                                    context = context,
-                                    aspectRatio = activeRatio,
-                                    backgroundType = backgroundType,
-                                    solidColor = selectedSolidColor,
-                                    gradient = PremiumGradients[selectedGradientIndex],
-                                    imageUri = selectedImageUri,
-                                    deviceFrameAspectRatio = deviceFrameAspectRatio,
-                                    ambientBlurRadius = ambientBlurRadius,
-                                    screenshotScale = screenshotScale,
-                                    screenshotOffsetX = screenshotOffsetX,
-                                    screenshotOffsetY = screenshotOffsetY,
-                                    activeTemplate = activeTemplate,
-                                    bezelColor = bezelColor,
-                                    bezelThickness = bezelThickness,
-                                    screenCornerRadius = screenCornerRadius,
-                                    showStatusBarIcons = showStatusBarIcons,
-                                    tiltX = tiltX,
-                                    tiltY = tiltY,
-                                    tiltZ = tiltZ,
-                                    perspectiveDepth = perspectiveDepth,
-                                    shadowStrength = shadowStrength,
-                                    showWatermark = showWatermark,
-                                    watermarkText = watermarkText,
-                                    watermarkPosition = watermarkPosition,
-                                    watermarkColor = watermarkColor,
-                                    watermarkSize = watermarkSize,
-                                    watermarkOpacity = watermarkOpacity,
-                                    coroutineScope = coroutineScope,
-                                    liquidThemeIndex = liquidThemeIndex,
-                                    liquidScale = liquidScale,
-                                    showDisplayGlassBlur = showDisplayGlassBlur,
-                                    displayGlassBlurColor = displayGlassBlurColor,
-                                    displayGlassBlurOpacity = displayGlassBlurOpacity,
-                                    deviceFrameScale = deviceFrameScale,
-                                    shadowEnabled = shadowEnabled,
-                                    shadowBlurRadius = shadowBlurRadius,
-                                    shadowOffsetX = shadowOffsetX,
-                                    shadowOffsetY = shadowOffsetY,
-                                    shadowColor = shadowColor,
-                                    backgroundUri = selectedBackgroundUri,
-                                    backgroundBlurRadius = backgroundBlurRadius,
-                                    showGlossyReflection = showGlossyReflection,
-                                    glossyReflectionOpacity = glossyReflectionOpacity,
-                                    screenshotGrayscale = screenshotGrayscale,
-                                    screenshotSepia = screenshotSepia,
-                                    screenshotBrightness = screenshotBrightness,
-                                    screenshotContrast = screenshotContrast,
-                                    screenshotLiquidGlass = screenshotLiquidGlass,
-                                    isDesktop = selectedStyle.isDesktop
-                                ) {
-                                    isSaving = false
+                    // Premium Gradient Export Button
+                    Box(
+                        modifier = Modifier
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF34D399), Color(0xFF059669)) // Neon emerald to deep forest
+                                )
+                            )
+                            .clickable {
+                                if (!isSaving) {
+                                    isSaving = true
+                                    saveMockupImage(
+                                        context = context,
+                                        aspectRatio = activeRatio,
+                                        backgroundType = backgroundType,
+                                        solidColor = selectedSolidColor,
+                                        gradient = PremiumGradients[selectedGradientIndex],
+                                        imageUri = selectedImageUri,
+                                        deviceFrameAspectRatio = deviceFrameAspectRatio,
+                                        ambientBlurRadius = ambientBlurRadius,
+                                        screenshotScale = screenshotScale,
+                                        screenshotOffsetX = screenshotOffsetX,
+                                        screenshotOffsetY = screenshotOffsetY,
+                                        activeTemplate = activeTemplate,
+                                        bezelColor = bezelColor,
+                                        bezelThickness = bezelThickness,
+                                        screenCornerRadius = screenCornerRadius,
+                                        showStatusBarIcons = showStatusBarIcons,
+                                        tiltX = tiltX,
+                                        tiltY = tiltY,
+                                        tiltZ = tiltZ,
+                                        perspectiveDepth = perspectiveDepth,
+                                        shadowStrength = shadowStrength,
+                                        showWatermark = showWatermark,
+                                        watermarkText = watermarkText,
+                                        watermarkPosition = watermarkPosition,
+                                        watermarkColor = watermarkColor,
+                                        watermarkSize = watermarkSize,
+                                        watermarkOpacity = watermarkOpacity,
+                                        coroutineScope = coroutineScope,
+                                        liquidThemeIndex = liquidThemeIndex,
+                                        liquidScale = liquidScale,
+                                        showDisplayGlassBlur = showDisplayGlassBlur,
+                                        displayGlassBlurColor = displayGlassBlurColor,
+                                        displayGlassBlurOpacity = displayGlassBlurOpacity,
+                                        deviceFrameScale = deviceFrameScale,
+                                        shadowEnabled = shadowEnabled,
+                                        shadowBlurRadius = shadowBlurRadius,
+                                        shadowOffsetX = shadowOffsetX,
+                                        shadowOffsetY = shadowOffsetY,
+                                        shadowColor = shadowColor,
+                                        backgroundUri = selectedBackgroundUri,
+                                        backgroundBlurRadius = backgroundBlurRadius,
+                                        showGlossyReflection = showGlossyReflection,
+                                        glossyReflectionOpacity = glossyReflectionOpacity,
+                                        screenshotGrayscale = screenshotGrayscale,
+                                        screenshotSepia = screenshotSepia,
+                                        screenshotBrightness = screenshotBrightness,
+                                        screenshotContrast = screenshotContrast,
+                                        screenshotLiquidGlass = screenshotLiquidGlass,
+                                        isDesktop = selectedStyle.isDesktop
+                                    ) {
+                                        isSaving = false
+                                    }
                                 }
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF10B981), // Emerald green for save
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        modifier = Modifier.height(32.dp)
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Download,
-                            contentDescription = "Export PNG",
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Export PNG",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Export PNG",
+                                tint = Color(0xFF0B0F19), // high-contrast dark color on bright green background
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Export PNG".uppercase(),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF0B0F19),
+                                letterSpacing = 0.5.sp
+                            )
+                        }
                     }
                 }
 
@@ -1091,43 +1218,51 @@ fun HiShootApp() {
                 }
             }
 
-            // CONTROLS CATEGORY TAB ROW (Sleek Space Obsidian Style)
-            ScrollableTabRow(
-                selectedTabIndex = activeTab.ordinal,
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                edgePadding = 12.dp,
-                modifier = Modifier.fillMaxWidth().shadow(6.dp),
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[activeTab.ordinal]),
-                        color = MaterialTheme.colorScheme.primary // Electric neon cyan accent highlight
-                    )
-                }
+            // CONTROLS CATEGORY TAB ROW (Premium Pill Style)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF0B0F19))
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 TabCategory.values().forEach { tab ->
                     val isSelected = activeTab == tab
-                    Tab(
-                        selected = isSelected,
-                        onClick = { activeTab = tab },
-                        text = {
-                            Text(
-                                text = tab.label,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                letterSpacing = 0.5.sp,
-                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.65f)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (isSelected) Color(0xFF818CF8).copy(alpha = 0.15f)
+                                else Color.White.copy(alpha = 0.03f)
                             )
-                        },
-                        icon = {
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) Color(0xFF818CF8).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.06f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { activeTab = tab }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Icon(
                                 imageVector = tab.icon,
                                 contentDescription = tab.label,
-                                modifier = Modifier.size(20.dp),
-                                tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.65f)
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isSelected) Color(0xFF818CF8) else Color.White.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = tab.label,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f)
                             )
                         }
-                    )
+                    }
                 }
             }
 
@@ -1612,6 +1747,16 @@ fun MockupCanvasContainer(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Brush.linearGradient(gradient.colors))
+                )
+            }
+            BackgroundType.PATTERN -> {
+                CustomPatternBackground(
+                    patternType = PatternConfig.selectedPatternType,
+                    primaryColor = PatternConfig.patternPrimaryColor,
+                    secondaryColor = PatternConfig.patternSecondaryColor,
+                    bgColor = PatternConfig.patternBgColor,
+                    scale = PatternConfig.patternScale,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             BackgroundType.AMBIENT_BLUR -> {
@@ -2900,7 +3045,29 @@ fun DeviceFrameSidebar(
     modifier: Modifier = Modifier,
     selectedStyleId: String,
     onStyleSelect: (DeviceFrameStyle) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    backgroundType: BackgroundType = BackgroundType.SOLID,
+    onBackgroundTypeChange: (BackgroundType) -> Unit = {},
+    selectedSolidColor: Color = Color.Black,
+    onSolidColorChange: (Color) -> Unit = {},
+    customHue: Float = 0f,
+    onCustomHueChange: (Float) -> Unit = {},
+    customSaturation: Float = 0.7f,
+    onCustomSaturationChange: (Float) -> Unit = {},
+    customValue: Float = 0.9f,
+    onCustomValueChange: (Float) -> Unit = {},
+    selectedGradientIndex: Int = 0,
+    onGradientIndexChange: (Int) -> Unit = {},
+    selectedPatternType: PatternType = PatternType.DOTS,
+    onPatternTypeChange: (PatternType) -> Unit = {},
+    patternPrimaryColorHue: Float = 240f,
+    onPatternPrimaryColorHueChange: (Float) -> Unit = {},
+    patternSecondaryColorHue: Float = 280f,
+    onPatternSecondaryColorHueChange: (Float) -> Unit = {},
+    patternBgColor: Color = Color.Black,
+    onPatternBgColorChange: (Color) -> Unit = {},
+    patternScale: Float = 1.0f,
+    onPatternScaleChange: (Float) -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Phones", "Tablets", "Desktops")
@@ -2913,6 +3080,9 @@ fun DeviceFrameSidebar(
             else -> DeviceFrameStylePresets
         }
     }
+
+    var activeTab by remember { mutableStateOf("Devices") }
+    val tabs = listOf("Devices", "Background")
 
     Surface(
         modifier = modifier
@@ -2945,7 +3115,7 @@ fun DeviceFrameSidebar(
                         letterSpacing = 2.sp
                     )
                     Text(
-                        text = "Device Frames",
+                        text = if (activeTab == "Devices") "Device Frames" else "Custom Canvas",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -2969,178 +3139,650 @@ fun DeviceFrameSidebar(
             }
             
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Category Quick Chips
+
+            // TAB SELECTOR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                categories.forEach { category ->
-                    val isSelected = selectedCategory == category
+                for (tab in tabs) {
+                    val isSelected = activeTab == tab
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                if (isSelected) Color(0xFF00E5FF)
-                                else Color.White.copy(alpha = 0.05f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) Color(0xFF1E293B) else Color.Transparent)
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) Color.White.copy(alpha = 0.08f) else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
                             )
-                            .clickable { selectedCategory = category }
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .clickable { activeTab = tab }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = category,
+                            text = tab.uppercase(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.8f)
+                            color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.6f),
+                            letterSpacing = 1.sp
                         )
                     }
                 }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = Color.White.copy(alpha = 0.08f))
-            Spacer(modifier = Modifier.height(12.dp))
             
-            // Search or Preset Count Indicator
-            Text(
-                text = "Available presets (${filteredPresets.size})",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.4f),
-                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp)
-            )
-            
-            // Presets Lazy List
-            androidx.compose.foundation.lazy.LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                filteredPresets.forEach { style ->
-                    item {
-                        val isSelected = style.id == selectedStyleId
-                        
-                        Column(
+            if (activeTab == "Devices") {
+                // Category Quick Chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    for (category in categories) {
+                        val isSelected = selectedCategory == category
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(20.dp))
                                 .background(
-                                    if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.12f)
-                                    else Color.White.copy(alpha = 0.02f)
+                                    if (isSelected) Color(0xFF00E5FF)
+                                    else Color.White.copy(alpha = 0.05f)
                                 )
-                                .border(
-                                    width = if (isSelected) 2.dp else 1.dp,
-                                    color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                .clickable { onStyleSelect(style) }
-                                .padding(14.dp)
+                                .clickable { selectedCategory = category }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            Text(
+                                text = category,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider(color = Color.White.copy(alpha = 0.08f))
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(
+                    text = "Available presets (${filteredPresets.size})",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp)
+                )
+                
+                // Presets Lazy List
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    filteredPresets.forEach { style ->
+                        item {
+                            val isSelected = style.id == selectedStyleId
+                            
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.12f)
+                                        else Color.White.copy(alpha = 0.02f)
+                                    )
+                                    .border(
+                                        width = if (isSelected) 2.dp else 1.dp,
+                                        color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .clickable { onStyleSelect(style) }
+                                    .padding(14.dp)
                             ) {
-                                // Mini Mockup Device Visual Frame representation
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(
-                                            if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f)
-                                            else Color.White.copy(alpha = 0.06f)
-                                        )
-                                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = when {
-                                            style.isDesktop -> Icons.Default.Laptop
-                                            style.isTablet -> Icons.Default.TabletAndroid
-                                            else -> Icons.Default.Smartphone
-                                        },
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.7f),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                                
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = style.name,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color(0xFF00E5FF) else Color.White
-                                    )
-                                    Text(
-                                        text = style.description,
-                                        fontSize = 9.5.sp,
-                                        color = Color.White.copy(alpha = 0.5f),
-                                        lineHeight = 13.sp
-                                    )
-                                }
-                                
-                                if (isSelected) {
                                     Box(
                                         modifier = Modifier
-                                            .size(18.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF00E5FF)),
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                if (isSelected) Color(0xFF00E5FF).copy(alpha = 0.15f)
+                                                else Color.White.copy(alpha = 0.06f)
+                                            )
+                                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Active",
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(12.dp)
+                                            imageVector = when {
+                                                style.isDesktop -> Icons.Default.Laptop
+                                                style.isTablet -> Icons.Default.TabletAndroid
+                                                else -> Icons.Default.Smartphone
+                                            },
+                                            contentDescription = null,
+                                            tint = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(22.dp)
                                         )
                                     }
+                                    
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = style.name,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color(0xFF00E5FF) else Color.White
+                                        )
+                                        Text(
+                                            text = style.description,
+                                            fontSize = 9.5.sp,
+                                            color = Color.White.copy(alpha = 0.5f),
+                                            lineHeight = 13.sp
+                                        )
+                                    }
+                                    
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(18.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF00E5FF)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Active",
+                                                tint = Color.Black,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
                                 }
-                            }
-                            
-                            // Technical specs badges inside card
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                SpecBadge(text = style.template.name.replace("_", " "))
-                                SpecBadge(text = "Corner: ${style.screenCornerRadius.roundToInt()}dp")
-                                SpecBadge(text = "Bezel: ${style.bezelThickness.roundToInt()}dp")
+                                
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    SpecBadge(text = style.template.name.replace("_", " "))
+                                    SpecBadge(text = "Corner: ${style.screenCornerRadius.roundToInt()}dp")
+                                    SpecBadge(text = "Bezel: ${style.bezelThickness.roundToInt()}dp")
+                                }
                             }
                         }
                     }
                 }
-            }
-            
-            // Footer Info Indicator
-            Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = Color.White.copy(alpha = 0.08f))
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.3f),
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    text = "Selecting presets wraps your screenshot instantly in high-fidelity hardware.",
-                    fontSize = 9.sp,
-                    color = Color.White.copy(alpha = 0.4f),
-                    lineHeight = 12.sp,
-                    modifier = Modifier.weight(1f)
-                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider(color = Color.White.copy(alpha = 0.08f))
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.3f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Selecting presets wraps your screenshot instantly in high-fidelity hardware.",
+                        fontSize = 9.sp,
+                        color = Color.White.copy(alpha = 0.4f),
+                        lineHeight = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                // Background Customization Panel!
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // 1. Background Type Selection Chips
+                    Column {
+                        Text(
+                            text = "CANVAS TYPE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00E5FF),
+                            letterSpacing = 1.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color.White.copy(alpha = 0.03f))
+                                .padding(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            val canvasOptions = listOf(
+                                BackgroundType.SOLID to "Solid",
+                                BackgroundType.GRADIENT to "Grad",
+                                BackgroundType.PATTERN to "Pattern",
+                                BackgroundType.AMBIENT_BLUR to "Blur",
+                                BackgroundType.LIQUID_FLOW to "Liquid"
+                            )
+                            for (option in canvasOptions) {
+                                val type = option.first
+                                val label = option.second
+                                val isSelected = backgroundType == type
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) Color(0xFF334155) else Color.Transparent)
+                                        .clickable { onBackgroundTypeChange(type) }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Divider(color = Color.White.copy(alpha = 0.06f))
+
+                    // 2. Active Mode Customizers
+                    when (backgroundType) {
+                        BackgroundType.SOLID -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Text(
+                                    text = "SOLID COLOR PRESETS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    for (color in PresetColors) {
+                                        val isCurrent = selectedSolidColor == color
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(color)
+                                                .border(
+                                                    width = if (isCurrent) 2.5.dp else 1.dp,
+                                                    color = if (isCurrent) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.15f),
+                                                    shape = CircleShape
+                                                )
+                                                .clickable { onSolidColorChange(color) }
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "INFINITE PALETTE SLIDERS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+
+                                // Custom Hue Slider
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Hue Accent", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                        Text("${customHue.roundToInt()}°", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = customHue,
+                                        onValueChange = onCustomHueChange,
+                                        valueRange = 0f..360f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.hsv(customHue, 1f, 1f),
+                                            activeTrackColor = Color.hsv(customHue, 0.7f, 0.8f),
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                        )
+                                    )
+                                }
+
+                                // Custom Saturation Slider
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Saturation", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                        Text("${(customSaturation * 100).roundToInt()}%", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = customSaturation,
+                                        onValueChange = onCustomSaturationChange,
+                                        valueRange = 0f..1f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.White,
+                                            activeTrackColor = Color.White.copy(alpha = 0.4f),
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                        )
+                                    )
+                                }
+
+                                // Custom Value (Brightness) Slider
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Brightness", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                        Text("${(customValue * 100).roundToInt()}%", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = customValue,
+                                        onValueChange = onCustomValueChange,
+                                        valueRange = 0f..1f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.White,
+                                            activeTrackColor = Color.White.copy(alpha = 0.4f),
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        BackgroundType.GRADIENT -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = "PREMIUM GRADIENTS (${PremiumGradients.size})",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                                for (idx in PremiumGradients.indices) {
+                                    val grad = PremiumGradients[idx]
+                                    val isCurrent = selectedGradientIndex == idx
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isCurrent) Color(0xFF1E293B) else Color.White.copy(alpha = 0.02f)
+                                            )
+                                            .border(
+                                                width = if (isCurrent) 1.5.dp else 1.dp,
+                                                color = if (isCurrent) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.05f),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable { onGradientIndexChange(idx) }
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(width = 50.dp, height = 28.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Brush.linearGradient(grad.colors))
+                                        )
+                                        Text(
+                                            text = grad.name,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isCurrent) Color(0xFF00E5FF) else Color.White
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        if (isCurrent) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = "Selected",
+                                                tint = Color(0xFF00E5FF),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        BackgroundType.PATTERN -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Text(
+                                    text = "PATTERN TYPE",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                                val patternOptions = listOf(
+                                    PatternType.DOTS to "Dot Matrix",
+                                    PatternType.GRID to "Sleek Grid",
+                                    PatternType.STRIPES to "Carbon Fiber",
+                                    PatternType.WAVES to "Topo Wave",
+                                    PatternType.HEXAGON to "Honeycomb",
+                                    PatternType.STARS to "Stellar Space"
+                                )
+                                
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    for (pair in patternOptions.chunked(2)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            for (option in pair) {
+                                                val type = option.first
+                                                val label = option.second
+                                                val isCurrent = selectedPatternType == type
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(
+                                                            if (isCurrent) Color(0xFF1E293B) else Color.White.copy(alpha = 0.02f)
+                                                        )
+                                                        .border(
+                                                            width = if (isCurrent) 1.5.dp else 1.dp,
+                                                            color = if (isCurrent) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.05f),
+                                                            shape = RoundedCornerShape(10.dp)
+                                                        )
+                                                        .clickable { onPatternTypeChange(type) }
+                                                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = label,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                                        color = if (isCurrent) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.8f)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Divider(color = Color.White.copy(alpha = 0.05f))
+
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Pattern Scale", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                        Text("${(patternScale * 100).roundToInt()}%", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = patternScale,
+                                        onValueChange = onPatternScaleChange,
+                                        valueRange = 0.4f..2.5f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.White,
+                                            activeTrackColor = Color(0xFF00E5FF),
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                        )
+                                    )
+                                }
+
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Primary Color Hue", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                        Text("${patternPrimaryColorHue.roundToInt()}°", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = patternPrimaryColorHue,
+                                        onValueChange = onPatternPrimaryColorHueChange,
+                                        valueRange = 0f..360f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.hsv(patternPrimaryColorHue, 0.7f, 0.9f),
+                                            activeTrackColor = Color.hsv(patternPrimaryColorHue, 0.7f, 0.9f),
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                        )
+                                    )
+                                }
+
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Secondary Color Hue", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                                        Text("${patternSecondaryColorHue.roundToInt()}°", fontSize = 11.sp, color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                                    }
+                                    Slider(
+                                        value = patternSecondaryColorHue,
+                                        onValueChange = onPatternSecondaryColorHueChange,
+                                        valueRange = 0f..360f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.hsv(patternSecondaryColorHue, 0.7f, 0.9f),
+                                            activeTrackColor = Color.hsv(patternSecondaryColorHue, 0.7f, 0.9f),
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.08f)
+                                        )
+                                    )
+                                }
+
+                                Column {
+                                    Text(
+                                        text = "PATTERN BASE BACKGROUND",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        letterSpacing = 1.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        for (color in PresetColors) {
+                                            val isCurrent = patternBgColor == color
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(34.dp)
+                                                    .clip(CircleShape)
+                                                    .background(color)
+                                                    .border(
+                                                        width = if (isCurrent) 2.5.dp else 1.dp,
+                                                        color = if (isCurrent) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.15f),
+                                                        shape = CircleShape
+                                                    )
+                                                    .clickable { onPatternBgColorChange(color) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        BackgroundType.AMBIENT_BLUR -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = "AMBIENT BLUR",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Ambient Blur uses dynamic blurred color hues extracted from your screenshot.",
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                        BackgroundType.LIQUID_FLOW -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = "LIQUID FLOW DESIGN",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Liquid flow displays fully customized, beautiful procedural glass and liquid themes.",
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider(color = Color.White.copy(alpha = 0.08f))
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.3f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Every background is fully rendered at ultra high resolution upon export.",
+                        fontSize = 9.sp,
+                        color = Color.White.copy(alpha = 0.4f),
+                        lineHeight = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -3705,6 +4347,7 @@ fun BackgroundTabContent(
                                 when (backgroundType) {
                                     BackgroundType.SOLID -> Modifier.background(selectedSolidColor)
                                     BackgroundType.GRADIENT -> Modifier.background(Brush.linearGradient(PremiumGradients[selectedGradientIndex].colors))
+                                    BackgroundType.PATTERN -> Modifier.background(PatternConfig.patternBgColor)
                                     BackgroundType.AMBIENT_BLUR -> Modifier.background(Color.Gray)
                                     BackgroundType.LIQUID_FLOW -> Modifier.background(Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0xFFF355DA))))
                                     BackgroundType.IMAGE -> Modifier.background(Color.DarkGray)
@@ -4084,6 +4727,16 @@ fun BackgroundTabContent(
                         onValueChange = onDisplayGlassBlurOpacityChange
                     )
                 }
+            }
+        }
+        BackgroundType.PATTERN -> {
+            ControlCard(title = "Pattern Settings") {
+                Text(
+                    text = "Custom patterns can be selected and fully configured inside the dedicated Device Lab sidebar! Tap the sidebar trigger on the main header, switch to 'Background' tab, and choose your pattern, colors, and scale.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
             }
         }
         BackgroundType.IMAGE -> {
@@ -4951,26 +5604,48 @@ fun WatermarkTabContent(
 fun ControlCard(
     modifier: Modifier = Modifier,
     title: String? = null,
+    icon: ImageVector? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF111827)), // Deep solid card surface
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(18.dp)
         ) {
             if (title != null) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    if (icon != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF818CF8).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = Color(0xFF818CF8),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = title.uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = Color(0xFF818CF8), // Periwinkle Indigo accent
+                        letterSpacing = 1.sp
+                    )
+                }
             }
             content()
         }
@@ -4985,24 +5660,67 @@ fun LabelSlider(
     displayValue: String,
     onValueChange: (Float) -> Unit
 ) {
-    Column {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(displayValue, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(
+                text = label,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = displayValue,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF818CF8) // Periwinkle Indigo accent
+                )
+            }
         }
+        Spacer(modifier = Modifier.height(2.dp))
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
+                thumbColor = Color(0xFF818CF8),
+                activeTrackColor = Color(0xFF818CF8),
+                inactiveTrackColor = Color.White.copy(alpha = 0.1f)
             ),
-            modifier = Modifier.height(28.dp)
+            modifier = Modifier.height(24.dp)
         )
+    }
+}
+
+fun Modifier.studioGridBackground(
+    gridSize: Float = 48f,
+    dotRadius: Float = 1.5f,
+    color: Color = Color.White.copy(alpha = 0.05f)
+): Modifier = this.drawBehind {
+    val width = size.width
+    val height = size.height
+    // Draw dot grid
+    var x = 0f
+    while (x < width) {
+        var y = 0f
+        while (y < height) {
+            drawCircle(
+                color = color,
+                radius = dotRadius,
+                center = androidx.compose.ui.geometry.Offset(x, y)
+            )
+            y += gridSize
+        }
+        x += gridSize
     }
 }
 
@@ -5267,6 +5985,11 @@ suspend fun renderHighResMockup(
     showDisplayGlassBlur: Boolean = false,
     displayGlassBlurColor: Color = Color(0xFF00E5FF),
     displayGlassBlurOpacity: Float = 0.4f,
+    patternType: PatternType = PatternConfig.selectedPatternType,
+    patternPrimaryColor: Color = PatternConfig.patternPrimaryColor,
+    patternSecondaryColor: Color = PatternConfig.patternSecondaryColor,
+    patternBgColor: Color = PatternConfig.patternBgColor,
+    patternScale: Float = PatternConfig.patternScale,
     deviceFrameScale: Float = 0.72f,
     shadowEnabled: Boolean = true,
     shadowBlurRadius: Float = 25f,
@@ -5306,6 +6029,135 @@ suspend fun renderHighResMockup(
             )
             bgPaint.shader = shader
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+        }
+        BackgroundType.PATTERN -> {
+            canvas.drawColor(patternBgColor.toArgb())
+            val pPaint = Paint().apply {
+                isAntiAlias = true
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f * patternScale * (width / 400f)
+            }
+            
+            when (patternType) {
+                PatternType.DOTS -> {
+                    pPaint.style = Paint.Style.FILL
+                    pPaint.color = patternPrimaryColor.toArgb()
+                    val step = 32f * patternScale * (width / 400f)
+                    val radius = 2f * patternScale * (width / 400f)
+                    var x = step / 2f
+                    while (x < width) {
+                        var y = step / 2f
+                        while (y < height) {
+                            canvas.drawCircle(x, y, radius, pPaint)
+                            y += step
+                        }
+                        x += step
+                    }
+                }
+                PatternType.GRID -> {
+                    pPaint.color = patternPrimaryColor.copy(alpha = 0.2f).toArgb()
+                    pPaint.strokeWidth = 1f * (width / 400f)
+                    val step = 40f * patternScale * (width / 400f)
+                    var x = 0f
+                    while (x < width) {
+                        canvas.drawLine(x, 0f, x, height.toFloat(), pPaint)
+                        x += step
+                    }
+                    var y = 0f
+                    while (y < height) {
+                        canvas.drawLine(0f, y, width.toFloat(), y, pPaint)
+                        y += step
+                    }
+                }
+                PatternType.STRIPES -> {
+                    pPaint.color = patternPrimaryColor.copy(alpha = 0.15f).toArgb()
+                    pPaint.strokeWidth = 4f * patternScale * (width / 400f)
+                    val step = 24f * patternScale * (width / 400f)
+                    var x = -height.toFloat()
+                    while (x < width) {
+                        canvas.drawLine(x, 0f, x + height, height.toFloat(), pPaint)
+                        x += step
+                    }
+                }
+                PatternType.WAVES -> {
+                    pPaint.color = patternPrimaryColor.copy(alpha = 0.25f).toArgb()
+                    pPaint.strokeWidth = 1.5f * patternScale * (width / 400f)
+                    
+                    val lineSpacing = 36f * patternScale * (width / 400f)
+                    val amplitude = 12f * patternScale * (width / 400f)
+                    val frequency = (0.015f / patternScale) * (400f / width)
+                    
+                    var yOffset = -amplitude
+                    while (yOffset < height + amplitude) {
+                        val path = Path()
+                        path.moveTo(0f, yOffset)
+                        var x = 0f
+                        while (x <= width) {
+                            val y = yOffset + amplitude * Math.sin((x * frequency).toDouble()).toFloat()
+                            path.lineTo(x, y)
+                            x += 10f * (width / 400f)
+                        }
+                        canvas.drawPath(path, pPaint)
+                        yOffset += lineSpacing
+                    }
+                }
+                PatternType.HEXAGON -> {
+                    pPaint.color = patternPrimaryColor.copy(alpha = 0.12f).toArgb()
+                    pPaint.strokeWidth = 1f * (width / 400f)
+                    
+                    val r = 24f * patternScale * (width / 400f)
+                    val h = r * Math.sin(Math.toRadians(30.0)).toFloat()
+                    val w = r * Math.cos(Math.toRadians(30.0)).toFloat()
+                    
+                    var row = 0
+                    var y = -r
+                    while (y < height + r) {
+                        val xOffset = if (row % 2 == 1) w else 0f
+                        var x = -w
+                        while (x < width + w) {
+                            val path = Path()
+                            val cx = x + xOffset
+                            val cy = y
+                            path.moveTo(cx, cy - r)
+                            path.lineTo(cx + w, cy - h)
+                            path.lineTo(cx + w, cy + h)
+                            path.lineTo(cx, cy + r)
+                            path.lineTo(cx - w, cy + h)
+                            path.lineTo(cx - w, cy - h)
+                            path.close()
+                            
+                            canvas.drawPath(path, pPaint)
+                            x += 2 * w
+                        }
+                        y += r + h
+                        row++
+                    }
+                }
+                PatternType.STARS -> {
+                    pPaint.color = patternPrimaryColor.copy(alpha = 0.15f).toArgb()
+                    pPaint.strokeWidth = 0.8f * (width / 400f)
+                    
+                    val fPaint = Paint().apply {
+                        isAntiAlias = true
+                        style = Paint.Style.FILL
+                        color = AndroidColor.argb((0.75f * 255).toInt(), 255, 255, 255)
+                    }
+                    
+                    val starCount = 60
+                    for (i in 0 until starCount) {
+                        val xPct = Math.abs(Math.sin((i * 1234.56).toDouble())).toFloat()
+                        val yPct = Math.abs(Math.cos((i * 6543.21).toDouble())).toFloat()
+                        val starSize = (1.5f + Math.abs(Math.sin((i * 999.9).toDouble())).toFloat() * 2.5f) * patternScale * (width / 400f)
+                        
+                        val px = xPct * width
+                        val py = yPct * height
+                        
+                        canvas.drawLine(px - starSize * 2f, py, px + starSize * 2f, py, pPaint)
+                        canvas.drawLine(px, py - starSize * 2f, px, py + starSize * 2f, pPaint)
+                        canvas.drawCircle(px, py, starSize * 0.5f, fPaint)
+                    }
+                }
+            }
         }
         BackgroundType.AMBIENT_BLUR -> {
             var loadedBg: Bitmap? = null
@@ -5902,6 +6754,11 @@ fun saveMockupImage(
     showDisplayGlassBlur: Boolean = false,
     displayGlassBlurColor: Color = Color(0xFF00E5FF),
     displayGlassBlurOpacity: Float = 0.4f,
+    patternType: PatternType = PatternConfig.selectedPatternType,
+    patternPrimaryColor: Color = PatternConfig.patternPrimaryColor,
+    patternSecondaryColor: Color = PatternConfig.patternSecondaryColor,
+    patternBgColor: Color = PatternConfig.patternBgColor,
+    patternScale: Float = PatternConfig.patternScale,
     deviceFrameScale: Float = 0.72f,
     shadowEnabled: Boolean = true,
     shadowBlurRadius: Float = 25f,
@@ -6019,6 +6876,11 @@ fun shareMockupImage(
     showDisplayGlassBlur: Boolean = false,
     displayGlassBlurColor: Color = Color(0xFF00E5FF),
     displayGlassBlurOpacity: Float = 0.4f,
+    patternType: PatternType = PatternConfig.selectedPatternType,
+    patternPrimaryColor: Color = PatternConfig.patternPrimaryColor,
+    patternSecondaryColor: Color = PatternConfig.patternSecondaryColor,
+    patternBgColor: Color = PatternConfig.patternBgColor,
+    patternScale: Float = PatternConfig.patternScale,
     deviceFrameScale: Float = 0.72f,
     shadowEnabled: Boolean = true,
     shadowBlurRadius: Float = 25f,
@@ -6047,6 +6909,11 @@ fun shareMockupImage(
                 tiltX, tiltY, tiltZ, perspectiveDepth, shadowStrength, showWatermark,
                 watermarkText, watermarkPosition, watermarkColor, watermarkSize, watermarkOpacity,
                 liquidThemeIndex, liquidScale, showDisplayGlassBlur, displayGlassBlurColor, displayGlassBlurOpacity,
+                patternType = patternType,
+                patternPrimaryColor = patternPrimaryColor,
+                patternSecondaryColor = patternSecondaryColor,
+                patternBgColor = patternBgColor,
+                patternScale = patternScale,
                 deviceFrameScale = deviceFrameScale,
                 shadowEnabled = shadowEnabled,
                 shadowBlurRadius = shadowBlurRadius,
@@ -6226,6 +7093,162 @@ fun LiquidFlowBackground(
                         )
                     )
             )
+        }
+    }
+}
+
+@Composable
+fun CustomPatternBackground(
+    patternType: PatternType,
+    primaryColor: Color,
+    secondaryColor: Color,
+    bgColor: Color,
+    scale: Float,
+    modifier: Modifier = Modifier
+) {
+    ComposeCanvas(modifier = modifier.background(bgColor)) {
+        val width = size.width
+        val height = size.height
+        
+        when (patternType) {
+            PatternType.DOTS -> {
+                val step = 32f * scale * density
+                val radius = 2f * scale * density
+                var x = step / 2f
+                while (x < width) {
+                    var y = step / 2f
+                    while (y < height) {
+                        drawCircle(
+                            color = primaryColor,
+                            radius = radius,
+                            center = androidx.compose.ui.geometry.Offset(x, y)
+                        )
+                        y += step
+                    }
+                    x += step
+                }
+            }
+            PatternType.GRID -> {
+                val step = 40f * scale * density
+                var x = 0f
+                while (x < width) {
+                    drawLine(
+                        color = primaryColor.copy(alpha = 0.2f),
+                        start = androidx.compose.ui.geometry.Offset(x, 0f),
+                        end = androidx.compose.ui.geometry.Offset(x, height),
+                        strokeWidth = 1f * density
+                    )
+                    x += step
+                }
+                var y = 0f
+                while (y < height) {
+                    drawLine(
+                        color = primaryColor.copy(alpha = 0.2f),
+                        start = androidx.compose.ui.geometry.Offset(0f, y),
+                        end = androidx.compose.ui.geometry.Offset(width, y),
+                        strokeWidth = 1f * density
+                    )
+                    y += step
+                }
+            }
+            PatternType.STRIPES -> {
+                val step = 24f * scale * density
+                var x = -height
+                while (x < width) {
+                    drawLine(
+                        color = primaryColor.copy(alpha = 0.15f),
+                        start = androidx.compose.ui.geometry.Offset(x, 0f),
+                        end = androidx.compose.ui.geometry.Offset(x + height, height),
+                        strokeWidth = 4f * scale * density
+                    )
+                    x += step
+                }
+            }
+            PatternType.WAVES -> {
+                val lineSpacing = 36f * scale * density
+                val amplitude = 12f * scale * density
+                val frequency = (0.015f / scale) / density
+                
+                var yOffset = -amplitude
+                while (yOffset < height + amplitude) {
+                    val path = androidx.compose.ui.graphics.Path()
+                    path.moveTo(0f, yOffset)
+                    var x = 0f
+                    while (x <= width) {
+                        val y = yOffset + amplitude * Math.sin((x * frequency).toDouble()).toFloat()
+                        path.lineTo(x, y)
+                        x += 10f * density
+                    }
+                    drawPath(
+                        path = path,
+                        color = primaryColor.copy(alpha = 0.25f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * scale * density)
+                    )
+                    yOffset += lineSpacing
+                }
+            }
+            PatternType.HEXAGON -> {
+                val r = 24f * scale * density
+                val h = r * Math.sin(Math.toRadians(30.0)).toFloat()
+                val w = r * Math.cos(Math.toRadians(30.0)).toFloat()
+                
+                var row = 0
+                var y = -r
+                while (y < height + r) {
+                    val xOffset = if (row % 2 == 1) w else 0f
+                    var x = -w
+                    while (x < width + w) {
+                        val path = androidx.compose.ui.graphics.Path()
+                        val cx = x + xOffset
+                        val cy = y
+                        path.moveTo(cx, cy - r)
+                        path.lineTo(cx + w, cy - h)
+                        path.lineTo(cx + w, cy + h)
+                        path.lineTo(cx, cy + r)
+                        path.lineTo(cx - w, cy + h)
+                        path.lineTo(cx - w, cy - h)
+                        path.close()
+                        
+                        drawPath(
+                            path = path,
+                            color = primaryColor.copy(alpha = 0.12f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f * density)
+                        )
+                        x += 2 * w
+                    }
+                    y += r + h
+                    row++
+                }
+            }
+            PatternType.STARS -> {
+                val starCount = 60
+                for (i in 0 until starCount) {
+                    val xPct = Math.abs(Math.sin((i * 1234.56).toDouble())).toFloat()
+                    val yPct = Math.abs(Math.cos((i * 6543.21).toDouble())).toFloat()
+                    val starSize = (1.5f + Math.abs(Math.sin((i * 999.9).toDouble())).toFloat() * 2.5f) * scale * density
+                    
+                    val px = xPct * width
+                    val py = yPct * height
+                    
+                    drawLine(
+                        color = primaryColor.copy(alpha = 0.15f),
+                        start = androidx.compose.ui.geometry.Offset(px - starSize * 2f, py),
+                        end = androidx.compose.ui.geometry.Offset(px + starSize * 2f, py),
+                        strokeWidth = 0.8f * density
+                    )
+                    drawLine(
+                        color = primaryColor.copy(alpha = 0.15f),
+                        start = androidx.compose.ui.geometry.Offset(px, py - starSize * 2f),
+                        end = androidx.compose.ui.geometry.Offset(px, py + starSize * 2f),
+                        strokeWidth = 0.8f * density
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.75f),
+                        radius = starSize * 0.5f,
+                        center = androidx.compose.ui.geometry.Offset(px, py)
+                    )
+                }
+            }
         }
     }
 }
