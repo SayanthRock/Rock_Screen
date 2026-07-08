@@ -93,10 +93,14 @@ jobs:
             artifact_label="$REF_NAME"
           fi
 
+          artifact_label_safe="${artifact_label//\//-}"
+          release_tag_safe="${release_tag//\//-}"
+
           echo "RELEASE_ENABLED=$release_enabled" >> "$GITHUB_ENV"
           echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG_SAFE=$release_tag_safe" >> "$GITHUB_ENV"
           echo "PRERELEASE=$prerelease" >> "$GITHUB_ENV"
-          echo "ARTIFACT_LABEL=$artifact_label" >> "$GITHUB_ENV"
+          echo "ARTIFACT_LABEL=$artifact_label_safe" >> "$GITHUB_ENV"
 
       - name: Create env file
         run: |
@@ -133,8 +137,7 @@ jobs:
             exit 1
           fi
 
-          safe_label="${ARTIFACT_LABEL//\//-}"
-          cp "$apk_path" "release/${APK_NAME}-${safe_label}.apk"
+          cp "$apk_path" "release/${APK_NAME}-${ARTIFACT_LABEL}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -157,14 +160,12 @@ jobs:
           fi
 
           current_apk=$(find release -maxdepth 1 -type f -name "*.apk" | head -n 1)
-          safe_release_tag="${RELEASE_TAG//\//-}"
-          release_apk="release/${APK_NAME}-${safe_release_tag}.apk"
+          release_apk="release/${APK_NAME}-${RELEASE_TAG_SAFE}.apk"
 
           if [ "$current_apk" != "$release_apk" ]; then
             mv -f "$current_apk" "$release_apk"
           fi
 
-          echo "RELEASE_APK_PATH=$release_apk" >> "$GITHUB_ENV"
           ls -lh release
 
       - name: Create GitHub Release
@@ -174,6 +175,6 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           target_commitish: ${{ github.sha }}
           name: Rock Screen ${{ env.RELEASE_TAG }}
-          files: ${{ env.RELEASE_APK_PATH }}
-          prerelease: ${{ env.PRERELEASE }}
+          files: release/*.apk
+          prerelease: ${{ env.PRERELEASE == 'true' }}
           generate_release_notes: true
