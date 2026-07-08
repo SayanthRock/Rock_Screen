@@ -138,14 +138,13 @@ jobs:
 
           apk_file="release/${APK_NAME}-${ARTIFACT_LABEL}.apk"
           cp "$apk_path" "$apk_file"
-          echo "APK_FILE=$apk_file" >> "$GITHUB_ENV"
           ls -lh release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APK_NAME }}-${{ env.ARTIFACT_LABEL }}
-          path: ${{ env.APK_FILE }}
+          path: release/*.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -155,7 +154,7 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           target_commitish: ${{ github.sha }}
           name: Rock Screen ${{ env.RELEASE_TAG }}
-          files: ${{ env.APK_FILE }}
+          files: release/*.apk
           prerelease: ${{ env.PRERELEASE == 'true' }}
           fail_on_unmatched_files: true
           generate_release_notes: true
