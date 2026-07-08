@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -152,12 +154,14 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.RELEASE_TAG }}
-          commit: ${{ github.sha }}
           name: Rock Screen ${{ env.RELEASE_TAG }}
+          body: |
+            Automated Rock Screen release for ${{ env.RELEASE_TAG }}.
+
+            APK file is attached below.
           artifacts: release/*.apk
           artifactErrorsFailBuild: true
           allowUpdates: true
           replacesArtifacts: true
-          generateReleaseNotes: true
           prerelease: ${{ env.PRERELEASE == 'true' }}
           token: ${{ secrets.GITHUB_TOKEN }}
